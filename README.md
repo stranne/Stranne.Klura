@@ -19,7 +19,7 @@ flutter run -d chrome
 dart format --output=none --set-exit-if-changed .
 flutter analyze
 flutter test
-dart test -p node test/core
+dart test -p node test/core test/puzzles/bridges/logic
 ```
 
 The last command runs the Flutter-free tests compiled to JavaScript under
@@ -28,8 +28,13 @@ puzzles than the VM. It needs Node.js on `PATH`.
 
 `flutter test --platform chrome` currently stalls on this Windows ARM64
 machine, and `package:test` cannot yet load WebAssembly tests under Node with
-Dart 3.13. The WebAssembly output was checked by hand on 2026-11-11 and matched
-the reference values.
+Dart 3.13. The WebAssembly output was checked by hand on 2026-11-11: it matched
+the reference values, and the 731 daily Bridges puzzles from 2026-11-11 were
+identical on the VM, in JavaScript and in WebAssembly.
+
+To time Bridges generation on the VM, run `dart run tool/benchmark_bridges.dart`.
+The script's documentation shows how to run it under Node.js, and
+[docs/bridges.md](docs/bridges.md#performance) records the latest numbers.
 
 ## Build
 
@@ -61,8 +66,8 @@ dart run tool/generate_icons.dart
 | `lib/app/` | App widget and theme |
 | `lib/home/` | Home screen listing the puzzles |
 | `lib/core/` | Flutter-free helpers shared by puzzles: seeded random, daily seed keys |
-| `lib/puzzles/<name>/` | One folder per puzzle type (Bridges is next); Flutter-free logic in `logic/` |
+| `lib/puzzles/<name>/` | One folder per puzzle type, starting with Bridges; Flutter-free rules, solver and generator in `logic/` |
 | `web/` | Web shell: loading screen, manifest and generated icons |
 | `design/icon/` | SVG sources for the icons |
-| `tool/` | Development scripts, such as the icon generator |
+| `tool/` | Development scripts: the icon generator and the Bridges benchmark |
 | `docs/` | Puzzle rules and design notes |
