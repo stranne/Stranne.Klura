@@ -1,7 +1,8 @@
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 
-/// Measures how long the daily Bridges puzzles take to generate and how many
-/// attempts they need, for two years from the first day Klura offers.
+/// Measures how long the daily Bridges puzzles of each level take to generate
+/// and how many attempts they need, for two years from the first day Klura
+/// offers.
 ///
 /// Run on the VM:
 ///
@@ -16,12 +17,17 @@ import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 /// node build/benchmark_bridges.js
 /// ```
 ///
-/// The first puzzle is reported separately: a page load generates one puzzle
-/// before the JavaScript engine has warmed up.
+/// The first puzzle of each level is reported separately: a page load
+/// generates a puzzle before the JavaScript engine has warmed up.
 void main(List<String> arguments) {
   final days = arguments.isEmpty ? 731 : int.parse(arguments.first);
-  final firstDate = DateTime.utc(2026, 11, 11);
+  for (final level in BridgesLevel.values) {
+    _report(level, days);
+  }
+}
 
+void _report(BridgesLevel level, int days) {
+  final firstDate = DateTime.utc(2026, 11, 11);
   final samples = <_Sample>[];
   for (var day = 0; day < days; day++) {
     final date = DateTime.utc(
@@ -30,7 +36,7 @@ void main(List<String> arguments) {
       firstDate.day + day,
     );
     final stopwatch = Stopwatch()..start();
-    final generated = generateDailyBridges(date);
+    final generated = generateDailyBridges(level, date);
     stopwatch.stop();
     samples.add(
       (
@@ -48,7 +54,8 @@ void main(List<String> arguments) {
     ..sort((a, b) => a.attempts.compareTo(b.attempts));
   final totalAttempts = samples.fold(0, (sum, sample) => sum + sample.attempts);
 
-  _write('Daily Bridges puzzles: $days from ${samples.first.key}');
+  _write('${level.name} puzzles: $days from ${samples.first.key}');
+  _write('  ${level.config}');
   _write('First puzzle (cold): ${_ms(samples.first.microseconds)}');
   _write('Later puzzles:');
   _write('  mean    ${_ms(_mean(warm))}');
@@ -60,6 +67,7 @@ void main(List<String> arguments) {
   _write('  median  ${byAttempts[byAttempts.length ~/ 2].attempts}');
   _write('  p95     ${byAttempts[byAttempts.length * 95 ~/ 100].attempts}');
   _write('  worst   ${byAttempts.last.attempts} (${byAttempts.last.key})');
+  _write('');
 }
 
 typedef _Sample = ({String key, int microseconds, int attempts});

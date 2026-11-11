@@ -4,7 +4,6 @@ import 'package:klura/puzzles/bridges/logic/bridge_arrangement.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_puzzle.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_solver.dart';
 import 'package:klura/puzzles/bridges/logic/geometry.dart';
-import 'package:klura/puzzles/bridges/logic/union_find.dart';
 import 'package:meta/meta.dart';
 
 /// The version of the Bridges generator in daily seed keys.
@@ -12,30 +11,72 @@ import 'package:meta/meta.dart';
 /// Increase it whenever a change would build a different puzzle for an
 /// existing key, so saved games never refer to a puzzle that has silently
 /// changed.
-const int bridgesGeneratorVersion = 1;
+const int bridgesGeneratorVersion = 2;
 
-/// The size of the puzzles to generate.
+/// The daily difficulty levels, each with a puzzle of its own every day.
+enum BridgesLevel {
+  normal(
+    BridgesConfig(
+      width: 10,
+      height: 10,
+      islandCount: 30,
+      maxReasoning: BridgesReasoning.advanced,
+    ),
+  ),
+  hard(
+    BridgesConfig(
+      width: 10,
+      height: 12,
+      islandCount: 36,
+      minReasoning: BridgesReasoning.lookahead,
+      minOpenAfterBasic: 20,
+    ),
+  );
+
+  const BridgesLevel(this.config);
+
+  final BridgesConfig config;
+}
+
+/// What to generate: the board size and the grades to accept.
 @immutable
 final class BridgesConfig {
   const BridgesConfig({
     required this.width,
     required this.height,
     required this.islandCount,
+    this.minReasoning = BridgesReasoning.basic,
+    this.maxReasoning = BridgesReasoning.lookahead,
+    this.minOpenAfterBasic = 0,
   });
-
-  /// The configuration of the puzzle of the day.
-  static const BridgesConfig daily = BridgesConfig(
-    width: 7,
-    height: 9,
-    islandCount: 16,
-  );
 
   final int width;
   final int height;
   final int islandCount;
 
+  /// The least reasoning an accepted puzzle may need.
+  final BridgesReasoning minReasoning;
+
+  /// The most reasoning an accepted puzzle may need. It must be below
+  /// [BridgesReasoning.search], so every accepted puzzle is solvable by
+  /// reasoning alone.
+  final BridgesReasoning maxReasoning;
+
+  /// The fewest connections basic moves may leave open, so a puzzle offers
+  /// enough choices to think about.
+  final int minOpenAfterBasic;
+
+  /// Whether a puzzle with [grade] suits this configuration.
+  bool accepts(BridgesGrade grade) =>
+      grade.reasoning.index >= minReasoning.index &&
+      grade.reasoning.index <= maxReasoning.index &&
+      grade.openAfterBasic >= minOpenAfterBasic;
+
   @override
-  String toString() => 'BridgesConfig(${width}x$height, $islandCount islands)';
+  String toString() =>
+      'BridgesConfig(${width}x$height, $islandCount islands, '
+      '${minReasoning.name} to ${maxReasoning.name}, '
+      'at least $minOpenAfterBasic open)';
 }
 
 /// A generated puzzle together with the solution it was built from.
@@ -44,6 +85,7 @@ final class GeneratedBridges {
     required this.seedKey,
     required this.puzzle,
     required this.solution,
+    required this.grade,
     required this.attempts,
   });
 
@@ -59,37 +101,40 @@ final class GeneratedBridges {
   /// this arrangement.
   final BridgeArrangement solution;
 
-  /// The number of layouts tried, including the one kept.
+  /// How hard the puzzle is, as measured by `gradeBridges`.
+  final BridgesGrade grade;
+
+  /// The number of attempts made, including the one kept.
   final int attempts;
 }
 
-/// The seed key of the puzzle of the day for the calendar date of [date],
-/// such as `bridges:v1:2026-11-11`.
-String bridgesDailySeedKey(DateTime date) => dailySeedKey(
-  puzzleId: 'bridges',
+/// The seed key of the puzzle of the day at [level] for the calendar date
+/// of [date], such as `bridges-normal:v2:2026-11-11`.
+String bridgesDailySeedKey(BridgesLevel level, DateTime date) => dailySeedKey(
+  puzzleId: 'bridges-${level.name}',
   generatorVersion: bridgesGeneratorVersion,
   date: date,
 );
 
-/// Generates the puzzle of the day for the calendar date of [date].
-GeneratedBridges generateDailyBridges(DateTime date) =>
-    generateBridges(bridgesDailySeedKey(date));
+/// Generates the puzzle of the day at [level] for the calendar date of
+/// [date].
+GeneratedBridges generateDailyBridges(BridgesLevel level, DateTime date) =>
+    generateBridges(bridgesDailySeedKey(level, date), level.config);
 
 /// Generates a puzzle with exactly one solution from [seedKey].
 ///
-/// Each attempt places the islands, links them with a random spanning tree
-/// of straight, non-crossing connections, gives each connection one or two
-/// bridges and numbers the islands to match. The solver then decides: the
-/// puzzle is kept only if the tree is its single solution. Otherwise the
-/// next attempt starts from the next seed derived from [seedKey].
+/// Each attempt grows the islands and a spanning tree of bridges together:
+/// every new island is joined to the tree by a straight bridge that crosses
+/// none, or splits an existing bridge in two. It then gives each bridge one
+/// or two lines and numbers the islands to match. The puzzle is kept only if
+/// reasoning alone solves it, which proves it has exactly one solution, and
+/// its grade suits [config]. Otherwise the next attempt starts from the next
+/// seed derived from [seedKey].
 ///
 /// The same key and [config] give the same puzzle on every platform.
-/// Throws an [ArgumentError] if [config] cannot hold the islands apart, and
-/// a [StateError] if no attempt succeeds.
-GeneratedBridges generateBridges(
-  String seedKey, {
-  BridgesConfig config = BridgesConfig.daily,
-}) {
+/// Throws an [ArgumentError] if [config] cannot be met, and a [StateError] if
+/// no attempt succeeds.
+GeneratedBridges generateBridges(String seedKey, BridgesConfig config) {
   _checkConfig(config);
 
   for (var attempt = 1; attempt <= _maxAttempts; attempt++) {
@@ -100,31 +145,34 @@ GeneratedBridges generateBridges(
     }
 
     final (puzzle, solution) = candidate;
-    final solutions = solveBridges(puzzle);
-    if (solutions.length != 1) {
+    final grade = gradeBridges(puzzle);
+    if (!config.accepts(grade)) {
       continue;
     }
-    if (solutions.single != solution) {
-      throw StateError('The solver missed the generated solution: $puzzle');
+    // Every accepted grade is below search, which already proves that the
+    // puzzle has exactly one solution. The solver confirms it cheaply.
+    final solutions = solveBridges(puzzle);
+    if (solutions.length != 1 || solutions.single != solution) {
+      throw StateError('The grade and the solver disagree on $puzzle');
     }
     return GeneratedBridges._(
       seedKey: seedKey,
       puzzle: puzzle,
       solution: solution,
+      grade: grade,
       attempts: attempt,
     );
   }
 
   throw StateError(
-    'No unique puzzle for "$seedKey" with $config after $_maxAttempts '
-    'attempts',
+    'No puzzle for "$seedKey" with $config after $_maxAttempts attempts',
   );
 }
 
 /// The number of attempts before giving up. Daily puzzles need far fewer.
 const int _maxAttempts = 1000;
 
-/// The chance, in percent, that a connection gets two bridges.
+/// The chance, in percent, that a bridge has two lines.
 const int _doubleBridgePercent = 35;
 
 void _checkConfig(BridgesConfig config) {
@@ -140,107 +188,87 @@ void _checkConfig(BridgesConfig config) {
       'Needs 2 to $maxIslands islands',
     );
   }
+  if (config.maxReasoning == BridgesReasoning.search ||
+      config.minReasoning.index > config.maxReasoning.index) {
+    throw ArgumentError.value(
+      config,
+      'config',
+      'Needs a reasoning range below search',
+    );
+  }
 }
 
 /// Builds a puzzle and the tree of bridges it was numbered from, or returns
-/// `null` if the islands cannot all be placed, leave an edge row or column of
-/// the grid empty, or cannot all be linked.
+/// `null` if the islands do not all fit or leave an edge row or column of the
+/// grid empty.
 (BridgesPuzzle, BridgeArrangement)? _buildCandidate(
   BridgesConfig config,
   SeededRandom random,
 ) {
-  final layout = _placeIslands(config, random);
-  if (layout == null || !layout.fillsGrid) {
-    return null;
+  final board = _GrowingBoard(config.width, config.height)
+    ..addFirstIsland(
+      Position(random.nextInt(config.width), random.nextInt(config.height)),
+    );
+  while (board.islands.length < config.islandCount) {
+    final moves = board.moves();
+    if (moves.isEmpty) {
+      return null;
+    }
+    board.apply(moves[random.nextInt(moves.length)]);
   }
-  final tree = _spanningTree(layout, random);
-  if (tree == null) {
+  if (!board.fillsGrid) {
     return null;
   }
 
   final solution = BridgeArrangement({
-    for (final connection in tree)
+    for (final connection in board.tree)
       connection: random.nextInt(100) < _doubleBridgePercent ? 2 : 1,
   });
   final puzzle = BridgesPuzzle(
     width: config.width,
     height: config.height,
     islands: [
-      for (final position in layout.islands)
+      for (final position in board.islands)
         Island(position, solution.bridgesTouching(position)),
     ],
   );
   return (puzzle, solution);
 }
 
-/// Places the islands one at a time on random cells that keep a gap to
-/// every island and face at least one along their row or column.
-_Layout? _placeIslands(BridgesConfig config, SeededRandom random) {
-  final layout = _Layout(config.width, config.height)
-    ..place(
-      Position(random.nextInt(config.width), random.nextInt(config.height)),
-    );
+/// A way to add an island at `island`: at the end of a new bridge from
+/// `from`, or in the middle of the bridge it `splits`.
+typedef _Move = ({Position island, Position? from, Connection? splits});
 
-  while (layout.islands.length < config.islandCount) {
-    final candidates = [
-      for (var y = 0; y < config.height; y++)
-        for (var x = 0; x < config.width; x++)
-          if (layout.canPlace(Position(x, y))) Position(x, y),
-    ];
-    if (candidates.isEmpty) {
-      return null;
-    }
-    layout.place(candidates[random.nextInt(candidates.length)]);
-  }
-  return layout;
-}
-
-/// Links the islands with a random spanning tree of connections that never
-/// cross, or returns `null` if the random order leaves an island out.
+/// Islands and the spanning tree of bridges between them, grown one island
+/// at a time.
 ///
-/// This is Kruskal's algorithm over the connections in random order,
-/// skipping each connection that would close a loop or cross one already
-/// chosen.
-List<Connection>? _spanningTree(_Layout layout, SeededRandom random) {
-  final islands = layout.islands;
-  final indexes = {
-    for (final (index, position) in islands.indexed) position: index,
-  };
-  final candidates = [
-    for (final position in islands)
-      for (final direction in const [Direction.right, Direction.down])
-        if (layout.nearestIsland(position, direction) case final other?)
-          Connection(position, other),
-  ];
-  random.shuffle(candidates);
-
-  final groups = UnionFind(islands.length);
-  final tree = <Connection>[];
-  for (final connection in candidates) {
-    final start = indexes[connection.start]!;
-    final end = indexes[connection.end]!;
-    if (groups.connects(start, end) || tree.any(connection.crosses)) {
-      continue;
-    }
-    groups.union(start, end);
-    tree.add(connection);
-  }
-  return tree.length == islands.length - 1 ? tree : null;
-}
-
-/// The islands placed so far, in the order they were placed.
-final class _Layout {
-  _Layout(this.width, this.height)
-    : _occupied = List.filled(width * height, false),
+/// The tree stays valid throughout: its bridges never cross, never pass over
+/// an island and link every island. Islands never sit side by side.
+final class _GrowingBoard {
+  _GrowingBoard(this.width, this.height)
+    : _islandAt = List.filled(width * height, false),
+      _crowded = List.filled(width * height, false),
+      _bridgeAt = List.filled(width * height, false),
       _islandsInRow = List.filled(height, 0),
       _islandsInColumn = List.filled(width, 0);
 
   final int width;
   final int height;
-  final List<bool> _occupied;
+
+  /// The islands in the order they were added.
+  final List<Position> islands = [];
+
+  /// The bridges of the spanning tree.
+  final List<Connection> tree = [];
+
+  final List<bool> _islandAt;
+
+  /// Whether each cell holds an island or sits beside one, so no new island
+  /// may go there.
+  final List<bool> _crowded;
+  final List<bool> _bridgeAt;
   final List<int> _islandsInRow;
   final List<int> _islandsInColumn;
-  final List<Position> islands = [];
 
   /// Whether every edge row and column of the grid holds an island, so the
   /// puzzle uses the whole board.
@@ -250,39 +278,74 @@ final class _Layout {
       _islandsInColumn.first > 0 &&
       _islandsInColumn.last > 0;
 
-  bool hasIsland(Position position) =>
-      position.isWithin(width, height) &&
-      _occupied[position.y * width + position.x];
+  void addFirstIsland(Position position) => _addIsland(position);
 
-  void place(Position position) {
-    _occupied[position.y * width + position.x] = true;
+  /// Every way to add one island, in a fixed order.
+  ///
+  /// A new bridge runs straight from an island over at least one free cell
+  /// to the new island, without crossing a bridge. A split puts the new
+  /// island on a bridge at least two cells from either end.
+  List<_Move> moves() {
+    final moves = <_Move>[];
+    for (final from in islands) {
+      for (final direction in Direction.values) {
+        var cell = from.step(direction);
+        for (
+          var distance = 1;
+          cell.isWithin(width, height) && _isFree(cell);
+          distance++
+        ) {
+          if (distance > 1 && !_crowded[_index(cell)]) {
+            moves.add((island: cell, from: from, splits: null));
+          }
+          cell = cell.step(direction);
+        }
+      }
+    }
+    for (final bridge in tree) {
+      final cells = bridge.cellsBetween.toList();
+      for (var index = 1; index < cells.length - 1; index++) {
+        if (!_crowded[_index(cells[index])]) {
+          moves.add((island: cells[index], from: null, splits: bridge));
+        }
+      }
+    }
+    return moves;
+  }
+
+  void apply(_Move move) {
+    final island = move.island;
+    if (move.splits case final bridge?) {
+      tree
+        ..remove(bridge)
+        ..add(Connection(bridge.start, island))
+        ..add(Connection(island, bridge.end));
+    } else {
+      final bridge = Connection(move.from!, island);
+      for (final cell in bridge.cellsBetween) {
+        _bridgeAt[_index(cell)] = true;
+      }
+      tree.add(bridge);
+    }
+    _addIsland(island);
+  }
+
+  bool _isFree(Position cell) =>
+      !_islandAt[_index(cell)] && !_bridgeAt[_index(cell)];
+
+  void _addIsland(Position position) {
+    _islandAt[_index(position)] = true;
+    _crowded[_index(position)] = true;
+    for (final direction in Direction.values) {
+      final neighbor = position.step(direction);
+      if (neighbor.isWithin(width, height)) {
+        _crowded[_index(neighbor)] = true;
+      }
+    }
     _islandsInRow[position.y]++;
     _islandsInColumn[position.x]++;
     islands.add(position);
   }
 
-  /// The nearest island from [from] in [direction], or `null` if there is
-  /// none before the edge.
-  Position? nearestIsland(Position from, Direction direction) {
-    for (
-      var position = from.step(direction);
-      position.isWithin(width, height);
-      position = position.step(direction)
-    ) {
-      if (_occupied[position.y * width + position.x]) {
-        return position;
-      }
-    }
-    return null;
-  }
-
-  /// Whether an island at [position] would keep a gap to every island and
-  /// face at least one of them, which it does whenever its row or column
-  /// already holds an island.
-  bool canPlace(Position position) =>
-      (_islandsInRow[position.y] > 0 || _islandsInColumn[position.x] > 0) &&
-      !hasIsland(position) &&
-      !Direction.values.any(
-        (direction) => hasIsland(position.step(direction)),
-      );
+  int _index(Position cell) => cell.y * width + cell.x;
 }
