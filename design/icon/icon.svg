@@ -5,7 +5,7 @@
   <!-- A K whose lower leg has become a dot: the moment a puzzle clicks. -->
   <g fill="none" stroke="#F4FAFB" stroke-width="76" stroke-linecap="round">
     <path d="M160 136V376"/>
-    <path d="M206 256L344 136"/>
+    <path d="M160 296L344 136"/>
   </g>
   <circle cx="338" cy="364" r="48" fill="#F4FAFB"/>
 </svg>

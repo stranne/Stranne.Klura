@@ -35,7 +35,25 @@ void main() {
     expect(manifest['background_color'], _hex(light.surface));
     expect(manifest['theme_color'], _hex(light.surface));
   });
+
+  // The mark is drawn by hand in each file, so a change to one must be copied
+  // to the others.
+  test('the icons and the loading screen draw the same mark', () {
+    final icon = _markShapes('design/icon/icon.svg');
+
+    expect(icon, isNotEmpty);
+    expect(_markShapes('design/icon/icon-full-bleed.svg'), icon);
+    expect(_markShapes('web/index.html'), icon);
+  });
 }
+
+/// Returns the geometry of the mark's paths and circles in [path], in order.
+List<String> _markShapes(String path) => [
+  for (final match in RegExp(
+    r'\b(?:d|cx|cy|r)="[^"]*"',
+  ).allMatches(File(path).readAsStringSync()))
+    match[0]!,
+];
 
 String _hex(Color color) {
   final rgb = color.toARGB32() & 0xFFFFFF;

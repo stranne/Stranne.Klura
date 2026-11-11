@@ -10,7 +10,7 @@
   <g transform="translate(25.6 25.6) scale(0.9)">
     <g fill="none" stroke="#F4FAFB" stroke-width="76" stroke-linecap="round">
       <path d="M160 136V376"/>
-      <path d="M206 256L344 136"/>
+      <path d="M160 296L344 136"/>
     </g>
     <circle cx="338" cy="364" r="48" fill="#F4FAFB"/>
   </g>
