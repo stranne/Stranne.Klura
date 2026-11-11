@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>Klura</title>
+  <!-- Rounded tile in the theme seed color, transparent corners. -->
+  <rect width="512" height="512" rx="112" fill="#2F7F86"/>
+  <!-- A K whose lower leg has become a dot: the moment a puzzle clicks. -->
+  <g fill="none" stroke="#F4FAFB" stroke-width="76" stroke-linecap="round">
+    <path d="M160 136V376"/>
+    <path d="M206 256L344 136"/>
+  </g>
+  <circle cx="338" cy="364" r="48" fill="#F4FAFB"/>
+</svg>

@@ -17,8 +17,10 @@ puzzle; read [docs/bridges.md](docs/bridges.md) before working on it.
 
 ## Code
 
-- Keep puzzle rules, generators and solvers free of Flutter imports so they
-  stay fast to test. Code under `lib/core/` must not import Flutter.
+- Keep each puzzle's rules, generator and solver in
+  `lib/puzzles/<name>/logic/`, free of Flutter so they stay fast to test and
+  run unchanged on every web target. The same applies to `lib/core/`.
+  `test/architecture_test.dart` enforces this and the `SeededRandom` rule.
 - Puzzle generation must be deterministic across the VM, JavaScript and
   WebAssembly. Use `SeededRandom` only, never `dart:math` `Random` or
   `List.shuffle`, and keep integer arithmetic within 32 bits.
@@ -26,7 +28,19 @@ puzzle; read [docs/bridges.md](docs/bridges.md) before working on it.
   change would alter the puzzle produced for an existing key.
 - Use package imports, `final` locals and typed domain models. The analyzer
   configuration is strict; fix lints rather than suppressing them. Suppress a
-  rule only for a specific line with a short reason.
+  rule only for a specific line, with a short reason in a comment above it.
+
+## Web
+
+- The app is hosted on GitHub Pages under a repository path. Keep URLs in
+  `web/` relative to the base href, and keep Flutter's default hash URLs;
+  path URLs need server rewrites that GitHub Pages does not offer.
+- `web/index.html` shows a loading screen in the theme's surface and primary
+  colors. `test/app/web_shell_test.dart` fails when they drift from
+  `lib/app/klura_theme.dart`, so update both together.
+- The icon sources are the SVG files in `design/icon/`. Edit those and run
+  `dart run tool/generate_icons.dart`; never edit the generated icons in
+  `web/` by hand.
 
 ## Verification
 

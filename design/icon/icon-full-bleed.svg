@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>Klura</title>
+  <!--
+    Square background to the edges, for maskable and Apple touch icons where
+    the platform applies its own shape. The mark is scaled to 90% around the
+    center so it stays well inside the maskable safe zone (a centered circle
+    with 80% of the icon's width).
+  -->
+  <rect width="512" height="512" fill="#2F7F86"/>
+  <g transform="translate(25.6 25.6) scale(0.9)">
+    <g fill="none" stroke="#F4FAFB" stroke-width="76" stroke-linecap="round">
+      <path d="M160 136V376"/>
+      <path d="M206 256L344 136"/>
+    </g>
+    <circle cx="338" cy="364" r="48" fill="#F4FAFB"/>
+  </g>
+</svg>

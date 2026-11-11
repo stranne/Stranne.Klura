@@ -1,46 +1,88 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
+    `flutter build web --base-href /<repository>/` replaces this placeholder,
+    so the app also works from a GitHub Pages repository path. Keep every
+    other URL in this folder relative to it.
   -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Klura - small daily logic puzzles.">
 
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Klura">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <!--
+    Match the browser and the loading screen to the app theme so dark mode
+    does not flash white while Flutter loads. The colors are the theme's
+    surface and primary colors; test/app/web_shell_test.dart keeps them in
+    sync with lib/app/klura_theme.dart.
+  -->
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#F4FAFB" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0E1415" media="(prefers-color-scheme: dark)">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Klura">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" href="favicon.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.json">
 
   <title>Klura</title>
-  <link rel="manifest" href="manifest.json">
+
+  <style>
+    :root {
+      --surface: #F4FAFB;
+      --primary: #006970;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --surface: #0E1415;
+        --primary: #80D4DC;
+      }
+    }
+
+    html,
+    body {
+      background: var(--surface);
+      height: 100%;
+      margin: 0;
+    }
+
+    #loading {
+      color: var(--primary);
+      display: grid;
+      inset: 0;
+      place-items: center;
+      position: fixed;
+    }
+
+    /* Wait briefly before fading in, so fast loads show no loader at all. */
+    #loading svg {
+      animation: loading-appear 600ms ease-out 400ms both;
+      height: 64px;
+      width: 64px;
+    }
+
+    @keyframes loading-appear {
+      from {
+        opacity: 0;
+      }
+    }
+  </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <!-- flutter_bootstrap.js removes this once the app runs. -->
+  <div id="loading">
+    <svg viewBox="96 96 320 320" aria-hidden="true">
+      <g fill="none" stroke="currentColor" stroke-width="76" stroke-linecap="round">
+        <path d="M160 136V376"/>
+        <path d="M206 256L344 136"/>
+      </g>
+      <circle cx="338" cy="364" r="48" fill="currentColor"/>
+    </svg>
+  </div>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

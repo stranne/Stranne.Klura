@@ -37,8 +37,22 @@ the reference values.
 flutter build web
 ```
 
-For GitHub Pages, pass the repository path, for example
-`flutter build web --base-href /klura/`.
+For GitHub Pages, pass the repository name as the base path, for example
+`flutter build web --base-href /klura/` for `https://<user>.github.io/klura/`.
+The app uses hash URLs (`#/...`), which GitHub Pages serves without extra
+configuration.
+
+## Icons
+
+The icon is a K whose lower leg has become a dot. Its sources are
+`design/icon/icon.svg`, a rounded tile for the favicon and regular icons, and
+`design/icon/icon-full-bleed.svg`, a square for maskable and Apple touch icons
+where the platform applies its own shape. After editing either, regenerate
+the files in `web/`. This needs ImageMagick 7 (`magick`) on `PATH`.
+
+```sh
+dart run tool/generate_icons.dart
+```
 
 ## Layout
 
@@ -47,5 +61,8 @@ For GitHub Pages, pass the repository path, for example
 | `lib/app/` | App widget and theme |
 | `lib/home/` | Home screen listing the puzzles |
 | `lib/core/` | Flutter-free helpers shared by puzzles: seeded random, daily seed keys |
-| `lib/puzzles/<name>/` | One folder per puzzle type (Bridges is next) |
+| `lib/puzzles/<name>/` | One folder per puzzle type (Bridges is next); Flutter-free logic in `logic/` |
+| `web/` | Web shell: loading screen, manifest and generated icons |
+| `design/icon/` | SVG sources for the icons |
+| `tool/` | Development scripts, such as the icon generator |
 | `docs/` | Puzzle rules and design notes |
