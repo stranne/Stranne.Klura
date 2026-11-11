@@ -162,6 +162,10 @@ For example, the puzzle of 2026-11-11 and its solution:
   of an error message.
 - Islands change appearance when their count is met. Gently mark overfull
   islands and closed loops.
-- Unlimited undo, automatic saving, an optional quiet timer and a short
-  completion animation.
+- Unlimited undo, an optional quiet timer and a short completion animation.
+- Progress saves automatically. Opening the same puzzle again restores it.
+- A reset clears every bridge to start over, also after the puzzle is solved.
+- The next day's puzzle appears on the next launch. An open game is never
+  replaced while the player is in it.
+- Try the interaction on a phone early and adjust it until play feels smooth.
 - No accounts, ads or hints in version 1.
