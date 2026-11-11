@@ -17,18 +17,60 @@ List<BridgeArrangement> solveBridges(BridgesPuzzle puzzle, {int limit = 2}) {
   if (limit < 1) {
     throw RangeError.range(limit, 1, null, 'limit');
   }
-  return _Search(puzzle, limit).run();
+  return _Constraints(puzzle).solve(limit);
 }
 
-/// A depth-first search over the number of bridges on each connection.
+/// How much reasoning a puzzle needs, from an empty board, to solve without
+/// trial and error.
+///
+/// Each level includes the ones before it.
+enum BridgesReasoning {
+  /// Island numbers and crossings settle every bridge, one island at a time.
+  basic,
+
+  /// Also needs the loop and connectivity rules: no bridge may close a loop,
+  /// and the bridges that remain possible must still link every island.
+  advanced,
+
+  /// Also needs lookahead: trying one bridge, following its consequences and
+  /// finding that it breaks a rule.
+  lookahead,
+
+  /// Needs deeper trial and error, or the puzzle has no single solution.
+  search,
+}
+
+/// How hard a puzzle is for a person, as measured by [gradeBridges].
+final class BridgesGrade {
+  const BridgesGrade._({
+    required this.reasoning,
+    required this.openAfterBasic,
+  });
+
+  /// The least reasoning that solves the puzzle.
+  final BridgesReasoning reasoning;
+
+  /// How many connections basic moves leave open on an empty board: the
+  /// choices a player has to think about rather than see at once.
+  final int openAfterBasic;
+}
+
+/// Grades [puzzle] by the reasoning it needs and the choices it leaves open.
+///
+/// Any grade below [BridgesReasoning.search] also proves that the puzzle has
+/// exactly one solution, because every deduction holds for every solution.
+BridgesGrade gradeBridges(BridgesPuzzle puzzle) => _Constraints(puzzle).grade();
+
+/// The rules of one puzzle, as constraints on the number of bridges on each
+/// connection.
 ///
 /// Each connection has a range of possible counts, stored in a `low` and a
 /// `high` list indexed like [BridgesPuzzle.connections]. Propagation narrows
-/// the ranges with every rule until nothing changes, and the search then
-/// branches on the most constrained open connection. Islands are indexed like
+/// the ranges with the rules until nothing changes. The solver then branches
+/// on the most constrained open connection. Islands are indexed like
 /// [BridgesPuzzle.islands].
-final class _Search {
-  factory _Search(BridgesPuzzle puzzle, int limit) {
+final class _Constraints {
+  factory _Constraints(BridgesPuzzle puzzle) {
     final islandIndexes = {
       for (final (index, island) in puzzle.islands.indexed)
         island.position: index,
@@ -44,9 +86,8 @@ final class _Search {
       incident[ends[index]].add(index);
     }
 
-    return _Search._(
+    return _Constraints._(
       puzzle: puzzle,
-      limit: limit,
       requiredBridges: Int32List.fromList([
         for (final island in puzzle.islands) island.requiredBridges,
       ]),
@@ -63,9 +104,8 @@ final class _Search {
     );
   }
 
-  _Search._({
+  _Constraints._({
     required this._puzzle,
-    required this._limit,
     required this._requiredBridges,
     required this._starts,
     required this._ends,
@@ -74,7 +114,6 @@ final class _Search {
   });
 
   final BridgesPuzzle _puzzle;
-  final int _limit;
 
   /// The number on each island.
   final Int32List _requiredBridges;
@@ -89,28 +128,66 @@ final class _Search {
   /// The connections that cross each connection.
   final List<List<int>> _crossing;
 
-  final List<BridgeArrangement> _solutions = [];
-
   int get _islandCount => _requiredBridges.length;
 
   int get _connectionCount => _starts.length;
 
-  List<BridgeArrangement> run() {
-    final low = Uint8List(_connectionCount);
-    final high = Uint8List(_connectionCount)
-      ..fillRange(0, _connectionCount, BridgeArrangement.maxBridges);
-    _search(low, high);
-    return List.unmodifiable(_solutions);
+  List<BridgeArrangement> solve(int limit) {
+    final solutions = <BridgeArrangement>[];
+    _search(_emptyLow(), _emptyHigh(), solutions, limit);
+    return List.unmodifiable(solutions);
   }
 
-  void _search(Uint8List low, Uint8List high) {
+  BridgesGrade grade() {
+    final low = _emptyLow();
+    final high = _emptyHigh();
+    final basicHolds = _propagate(low, high, basicOnly: true);
+    final openAfterBasic = _openCount(low, high);
+
+    final BridgesReasoning reasoning;
+    if (!basicHolds || !_propagate(low, high)) {
+      reasoning = BridgesReasoning.search;
+    } else if (openAfterBasic == 0) {
+      reasoning = BridgesReasoning.basic;
+    } else if (_openCount(low, high) == 0) {
+      reasoning = BridgesReasoning.advanced;
+    } else if (_lookAhead(low, high) && _openCount(low, high) == 0) {
+      reasoning = BridgesReasoning.lookahead;
+    } else {
+      reasoning = BridgesReasoning.search;
+    }
+    return BridgesGrade._(reasoning: reasoning, openAfterBasic: openAfterBasic);
+  }
+
+  Uint8List _emptyLow() => Uint8List(_connectionCount);
+
+  Uint8List _emptyHigh() =>
+      Uint8List(_connectionCount)
+        ..fillRange(0, _connectionCount, BridgeArrangement.maxBridges);
+
+  int _openCount(Uint8List low, Uint8List high) {
+    var open = 0;
+    for (var connection = 0; connection < _connectionCount; connection++) {
+      if (low[connection] < high[connection]) {
+        open++;
+      }
+    }
+    return open;
+  }
+
+  void _search(
+    Uint8List low,
+    Uint8List high,
+    List<BridgeArrangement> solutions,
+    int limit,
+  ) {
     if (!_propagate(low, high)) {
       return;
     }
 
     final connection = _chooseOpenConnection(low, high);
     if (connection < 0) {
-      _solutions.add(_arrangementOf(low));
+      solutions.add(_arrangementOf(low));
       return;
     }
 
@@ -121,18 +198,61 @@ final class _Search {
     ) {
       final nextLow = Uint8List.fromList(low)..[connection] = bridges;
       final nextHigh = Uint8List.fromList(high)..[connection] = bridges;
-      _search(nextLow, nextHigh);
-      if (_solutions.length >= _limit) {
+      _search(nextLow, nextHigh, solutions, limit);
+      if (solutions.length >= limit) {
         return;
       }
     }
   }
 
+  /// Narrows the ranges with one step of lookahead: a count that makes
+  /// propagation fail at once is ruled out. Repeats until nothing changes.
+  ///
+  /// Only the lowest or highest count of a range can be ruled out, so the
+  /// possible counts stay a range.
+  bool _lookAhead(Uint8List low, Uint8List high) {
+    if (!_propagate(low, high)) {
+      return false;
+    }
+    var changed = true;
+    while (changed) {
+      changed = false;
+      for (var connection = 0; connection < _connectionCount; connection++) {
+        if (low[connection] == high[connection]) {
+          continue;
+        }
+        if (!_allows(low, high, connection, low[connection])) {
+          low[connection]++;
+        } else if (!_allows(low, high, connection, high[connection])) {
+          high[connection]--;
+        } else {
+          continue;
+        }
+        if (!_propagate(low, high)) {
+          return false;
+        }
+        changed = true;
+      }
+    }
+    return true;
+  }
+
+  /// Whether giving [connection] exactly [bridges] survives propagation.
+  bool _allows(Uint8List low, Uint8List high, int connection, int bridges) {
+    final tryLow = Uint8List.fromList(low)..[connection] = bridges;
+    final tryHigh = Uint8List.fromList(high)..[connection] = bridges;
+    return _propagate(tryLow, tryHigh);
+  }
+
   /// Narrows the ranges in place until no rule narrows them further.
   ///
+  /// With [basicOnly], only island numbers and crossings narrow them: the
+  /// moves a player sees by looking at one island at a time.
+  ///
   /// Returns `false` if a rule cannot be met. When every range is a single
-  /// value and this returns `true`, the values form a solution.
-  bool _propagate(Uint8List low, Uint8List high) {
+  /// value and this returns `true` with every rule, the values form a
+  /// solution.
+  bool _propagate(Uint8List low, Uint8List high, {bool basicOnly = false}) {
     var changed = true;
     while (changed) {
       changed = false;
@@ -179,6 +299,10 @@ final class _Search {
             changed = true;
           }
         }
+      }
+
+      if (basicOnly) {
+        continue;
       }
 
       // Connections that must have bridges may not form a loop, so no

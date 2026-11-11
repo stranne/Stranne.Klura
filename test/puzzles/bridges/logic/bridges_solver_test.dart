@@ -116,7 +116,91 @@ void main() {
 
     expect(countsSeen, {0, 1, 2}, reason: 'The boards should cover every case');
   });
+
+  group('gradeBridges', () {
+    BridgesGrade grade(String board) {
+      final (:puzzle, arrangement: _) = parseBridges(board);
+      return gradeBridges(puzzle);
+    }
+
+    test('needs only basic moves when island numbers settle every bridge', () {
+      final result = grade('''
+3.2
+...
+1..
+''');
+
+      expect(result.reasoning, BridgesReasoning.basic);
+      expect(result.openAfterBasic, 0);
+    });
+
+    test(
+      'needs advanced reasoning when the rules settle what numbers cannot',
+      () {
+        final result = grade(_advancedPuzzle);
+
+        expect(result.reasoning, BridgesReasoning.advanced);
+        expect(result.openAfterBasic, greaterThan(0));
+      },
+    );
+
+    test('needs lookahead when only trying a bridge rules it out', () {
+      // Basic moves leave every connection open. Joining the two 1s would
+      // leave the board in two groups, which only shows once it is tried.
+      final result = grade('''
+1.2
+...
+1.2
+''');
+
+      expect(result.reasoning, BridgesReasoning.lookahead);
+      expect(result.openAfterBasic, 4);
+    });
+
+    group('needs search for a puzzle without exactly one solution', () {
+      final cases = {
+        'two solutions': '2.4.1\n.....\n1.2..\n',
+        'no solution': '1.1\n...\n1.1\n',
+      };
+
+      for (final MapEntry(key: description, value: board) in cases.entries) {
+        test(description, () {
+          expect(grade(board).reasoning, BridgesReasoning.search);
+        });
+      }
+    });
+
+    test('agrees with the solver that settled puzzles are unique', () {
+      final random = SeededRandom(11);
+
+      for (var board = 0; board < 200; board++) {
+        final puzzle = _randomBoard(random, fromTree: true);
+
+        final result = gradeBridges(puzzle);
+
+        if (result.reasoning != BridgesReasoning.search) {
+          expect(
+            solveBridges(puzzle),
+            hasLength(1),
+            reason:
+                'Graded ${result.reasoning.name} but not unique:\n'
+                '${formatBridges(puzzle)}',
+          );
+        }
+      }
+    });
+  });
 }
+
+/// A unique puzzle that island numbers alone leave open. They allow the
+/// four bridges around the square on the right to form a loop, and only the
+/// no-loop rule rules that out.
+const String _advancedPuzzle = '''
+..3.2
+1....
+.....
+2.4.2
+''';
 
 /// A board of four to nine islands on a 6 by 6 grid with at most twelve
 /// connections. Its numbers come either from random bridges that may break
