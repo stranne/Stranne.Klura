@@ -28,7 +28,8 @@ void main() {
       isEmpty,
       reason:
           'Code under lib/core/ and lib/puzzles/*/logic/ may import only '
-          '${_allowedDartLibraries.join(', ')} and other Flutter-free Klura '
+          '${_allowedDartLibraries.join(', ')}, '
+          '${_allowedPackageLibraries.join(', ')} and other Flutter-free Klura '
           'code. Allow another package here only if it is pure Dart and runs '
           'on the web.',
     );
@@ -61,6 +62,9 @@ const Set<String> _allowedDartLibraries = {
   'dart:math',
   'dart:typed_data',
 };
+
+/// Pure Dart package libraries that run on every web target.
+const Set<String> _allowedPackageLibraries = {'package:meta/meta.dart'};
 
 final RegExp _puzzleLogicUri = RegExp('^package:klura/puzzles/[^/]+/logic/');
 
@@ -97,6 +101,7 @@ List<File> _flutterFreeFiles() {
 
 bool _isAllowedImport(String uri) =>
     _allowedDartLibraries.contains(uri) ||
+    _allowedPackageLibraries.contains(uri) ||
     uri.startsWith('package:klura/core/') ||
     _puzzleLogicUri.hasMatch(uri);
 
