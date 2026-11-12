@@ -36,6 +36,10 @@ Bridges and Tents; read [docs/bridges.md](docs/bridges.md) or
 - The app is hosted on GitHub Pages under a repository path. Keep URLs in
   `web/` relative to the base href, and keep Flutter's default hash URLs;
   path URLs need server rewrites that GitHub Pages does not offer.
+- `web/index.html` sets a content security policy that lets the page load
+  files from its own site only, so CanvasKit and the Roboto font are served
+  from the site too. Keep new resources on the site rather than widening the
+  policy; `test/app/web_shell_test.dart` checks it.
 - `web/index.html` shows a loading screen in the theme's surface and primary
   colors. `test/app/web_shell_test.dart` fails when they drift from
   `lib/app/klura_theme.dart`, so update both together.

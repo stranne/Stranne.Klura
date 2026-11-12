@@ -20,3 +20,15 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # The Roboto file Flutter's web engine would otherwise download from
+  # fonts.gstatic.com, so the app loads nothing from other sites. The engine
+  # skips its download only for a family named Roboto. It is Roboto 2.137,
+  # from https://fonts.gstatic.com/s/roboto/v32/KFOmCnqEu92Fr1Me4GZLCzYlKw.woff2,
+  # under the Apache License 2.0, which ships beside it.
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: fonts/roboto/Roboto-Regular.woff2
+  assets:
+    - fonts/roboto/LICENSE.txt

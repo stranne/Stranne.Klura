@@ -55,6 +55,13 @@ For GitHub Pages, pass the repository name as the base path, for example
 The app uses hash URLs (`#/...`), which GitHub Pages serves without extra
 configuration.
 
+The page loads files from its own site only. `web/index.html` sets a content
+security policy that allows nothing else, so Flutter's two downloads from
+Google come from the site instead: `web/flutter_bootstrap.js` loads CanvasKit
+from the build's `canvaskit/` folder, and `fonts/roboto/` holds the Roboto
+font the web engine would otherwise fetch. A new resource from another site
+needs a change to the policy.
+
 ## Deploy
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the checks above
@@ -98,8 +105,8 @@ Nothing keeps an old version beyond that, because Klura has no service
 worker. Flutter 3.50 registers one only when `flutter_bootstrap.js` asks for
 it, and `web/flutter_bootstrap.js` does not. The build still writes a
 `flutter_service_worker.js`, which only removes a worker that an older
-Flutter version installed. CanvasKit and the Roboto font come from Google's
-servers at versioned addresses, so they never go stale.
+Flutter version installed. CanvasKit and the Roboto font come from the site
+like every other file, so the same ten minutes apply to them.
 
 The build leaves `--web-content-hash` off. Hashed file names rely on
 `index.html` and `flutter_bootstrap.js` being served with `no-cache`, which
@@ -132,7 +139,8 @@ dart run tool/generate_icons.dart
 | `lib/core/` | Flutter-free helpers shared by puzzles: seeded random, daily seed keys, calendar dates, play times, grid positions, the game interface, the solve history, the storage of daily games and the `LocalStore` interface |
 | `lib/play/` | What every puzzle screen shares: the play timer, the sounds of moves, the controller base, the daily games of one puzzle and the puzzle screen with its clock, sound button, status line, buttons, solved panel and how-to-play sheet |
 | `lib/puzzles/<name>/` | One folder per puzzle type, Bridges and Tents: its screen, board, controller and daily games, with the Flutter-free rules, solver, generator, game state and save format in `logic/` |
-| `web/` | Web shell: loading screen, manifest and generated icons |
+| `web/` | Web shell: loading screen, content security policy, manifest and generated icons |
+| `fonts/` | The Roboto font with its license, bundled so the web engine does not download it |
 | `design/icon/` | SVG sources for the icons |
 | `tool/` | Development scripts: the icon generator and the benchmark of each puzzle |
 | `docs/` | Puzzle rules and design notes |

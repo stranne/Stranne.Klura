@@ -9,6 +9,18 @@
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
+
+  <!--
+    Lets the page load files from this site only. CanvasKit is WebAssembly,
+    which needs 'wasm-unsafe-eval', and Flutter adds styles to the page,
+    which need 'unsafe-inline'. The hash is that of the one inline script
+    `flutter run` adds in debug mode, `window.$dartRunMain();`, which starts
+    the app; a release build has no such function, so the script does
+    nothing there. GitHub Pages cannot send headers, so the policy is a meta
+    tag, which cannot set frame-ancestors or reporting.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-MndvH2xoJITJx1vAmJTo0n71uGBofeMZfQTpl28Jz7s='; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'none'">
+
   <meta name="description" content="Klura - small daily logic puzzles.">
 
   <!--
