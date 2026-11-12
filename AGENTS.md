@@ -5,8 +5,9 @@ These instructions apply to the entire repository.
 ## Project
 
 Klura is a personal, non-commercial Flutter web app with small daily logic
-puzzles. The goal is a simple, smooth and calm experience. Bridges is the first
-puzzle; read [docs/bridges.md](docs/bridges.md) before working on it.
+puzzles. The goal is a simple, smooth and calm experience. The puzzles are
+Bridges and Tents; read [docs/bridges.md](docs/bridges.md) or
+[docs/tents.md](docs/tents.md) before working on one of them.
 
 - Target the web only. Do not add iOS, Android or desktop platforms unless the
   user asks; `flutter create --platforms <list> .` adds them later.

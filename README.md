@@ -4,8 +4,12 @@ Small daily logic puzzles for the web, built with Flutter. Each puzzle type
 gets a new puzzle every day, generated on the device from the date. Klura is a
 personal, non-commercial hobby project.
 
-The first puzzle is [Bridges](docs/bridges.md): connect the islands so every
-number is met, all islands are linked and no loops form.
+There are two puzzles so far:
+
+- [Bridges](docs/bridges.md): connect the islands so every number is met, all
+  islands are linked and no loops form.
+- [Tents](docs/tents.md): give every tree a tent of its own beside it, keep
+  tents from touching and match the number of tents in each row and column.
 
 ## Run
 
@@ -19,7 +23,7 @@ flutter run -d chrome
 dart format --output=none --set-exit-if-changed .
 flutter analyze
 flutter test
-dart test -p node -c dart2js,dart2wasm test/core test/puzzles/bridges/logic
+dart test -p node -c dart2js,dart2wasm test/core test/puzzles/bridges/logic test/puzzles/tents/logic
 ```
 
 The last command runs the Flutter-free tests compiled to JavaScript and to
@@ -29,9 +33,10 @@ generate different puzzles than the VM. It needs Node.js on `PATH`.
 `flutter test --platform chrome` currently stalls on the Windows ARM64
 development machine.
 
-To time Bridges generation on the VM, run `dart run tool/benchmark_bridges.dart`.
-The script's documentation shows how to run it under Node.js, and
-[docs/bridges.md](docs/bridges.md#performance) records the latest numbers.
+To time generation on the VM, run `dart run tool/benchmark_bridges.dart` or
+`dart run tool/benchmark_tents.dart`. The scripts' documentation shows how to
+run them under Node.js, and [docs/bridges.md](docs/bridges.md#performance)
+and [docs/tents.md](docs/tents.md#performance) record the latest numbers.
 
 ## Build
 
@@ -118,10 +123,11 @@ dart run tool/generate_icons.dart
 | --- | --- |
 | `lib/app/` | App widget, routes, theme, settings and the browser's local storage |
 | `lib/home/` | Home screen listing today's puzzles and their progress |
-| `lib/core/` | Flutter-free helpers shared by puzzles: seeded random, daily seed keys, calendar dates, play times and the `LocalStore` interface |
-| `lib/puzzles/<name>/` | One folder per puzzle type, starting with Bridges: its screen, board, controller and timer, with the Flutter-free rules, solver, generator, game state and save format in `logic/` |
+| `lib/core/` | Flutter-free helpers shared by puzzles: seeded random, daily seed keys, calendar dates, play times, grid positions, the game interface, the solve history, the storage of daily games and the `LocalStore` interface |
+| `lib/play/` | What every puzzle screen shares: the play timer, the controller base, the daily games of one puzzle and the puzzle screen with its clock, status line, buttons, solved panel and how-to-play sheet |
+| `lib/puzzles/<name>/` | One folder per puzzle type, Bridges and Tents: its screen, board, controller and daily games, with the Flutter-free rules, solver, generator, game state and save format in `logic/` |
 | `web/` | Web shell: loading screen, manifest and generated icons |
 | `design/icon/` | SVG sources for the icons |
-| `tool/` | Development scripts: the icon generator and the Bridges benchmark |
+| `tool/` | Development scripts: the icon generator and the benchmark of each puzzle |
 | `docs/` | Puzzle rules and design notes |
 | `.github/workflows/` | CI: the checks, and the build and deploy to GitHub Pages |

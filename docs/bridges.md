@@ -64,10 +64,14 @@ several solutions; no unique puzzle has needed deeper trial and error.
 
 The logic lives in `lib/puzzles/bridges/logic/` and does not depend on
 Flutter. The screen that plays it lives beside it in `lib/puzzles/bridges/`.
+What every puzzle shares lives in `lib/core/` and `lib/play/`, as the
+[README](../README.md#layout) describes: grid positions, the solve history,
+the storage of daily games, the play timer, the controller base and the
+puzzle screen with its clock, status line, buttons and solved panel.
 
 | File | Responsibility |
 | --- | --- |
-| `geometry.dart` | `Position`, `Direction` and `Connection`, including whether two connections cross |
+| `geometry.dart` | `Connection`, a line between two cells of a row or column, including whether two connections cross; `Position` and `Direction` come from `lib/core/grid.dart` |
 | `bridges_puzzle.dart` | `BridgesPuzzle`: the grid, its islands, each island's nearest neighbors and every possible connection |
 | `bridge_arrangement.dart` | `BridgeArrangement`: the player's bridges as an immutable value |
 | `bridges_rules.dart` | `checkBridges`: judges an arrangement against the rules |
@@ -75,16 +79,15 @@ Flutter. The screen that plays it lives beside it in `lib/puzzles/bridges/`.
 | `bridges_generator.dart` | `BridgesLevel`, `BridgesConfig`, `generateBridges` and the daily entry point |
 | `bridges_text.dart` | `formatBridges` and `parseBridges`: a text notation for tests |
 | `bridges_game.dart` | `BridgesGame`: a game in progress, with its moves, undo history and rules check |
-| `bridges_save.dart` | `BridgesSave` and `BridgesHistory` and their JSON save format |
-| `bridges_storage.dart` | `BridgesStorage`: keeps saved games and the history in a `LocalStore` and clears away earlier days |
+| `bridges_save.dart` | `BridgesSave` and its JSON save format |
+| `bridges_storage.dart` | `BridgesStorage`: the shared `DailyStorage` for Bridges, which keeps saved games and the history in a `LocalStore` and clears away earlier days |
 | `union_find.dart` | Disjoint groups of islands, shared by the rules check and the solver |
 
 | File in `lib/puzzles/bridges/` | Responsibility |
 | --- | --- |
-| `bridges_controller.dart` | `BridgesController`: holds one `BridgesGame`, tells the screen about each move and times the play up to the first solve |
-| `bridges_daily_games.dart` | `BridgesDailyGames`: the day's game at each level, restored and saved as it is played, with its solves |
-| `play_timer.dart` | `PlayTimer`: counts the time played on a monotonic clock |
-| `bridges_screen.dart` | The game screen: board, status line, buttons, solved panel and how to play |
+| `bridges_controller.dart` | `BridgesController`: the shared `PuzzleController` for a `BridgesGame`, with the move that cycles bridges |
+| `bridges_daily_games.dart` | `BridgesDailyGames`: the shared `DailyGames` for Bridges, the day's game at each level, restored and saved as it is played |
+| `bridges_screen.dart` | The game screen: the shared `PuzzleScreen` with the board, the problems the status line names and how to play |
 | `bridges_board.dart` | The board widget: layout, gestures, keyboard, islands and their semantics |
 | `bridges_board_painter.dart` | Paints grid dots, bridges, previews and the marks for loops, blocked moves and the solve |
 | `bridges_board_geometry.dart` | Places cells in pixels and finds the island or bridge under a pointer |
@@ -363,8 +366,8 @@ one storage, so every key starts with `klura.`:
 
 ### Save format
 
-Games and the history are JSON objects with a `format` number, now 1,
-written and read by `bridges_save.dart`. A game:
+Games and the history are JSON objects with a `format` number, now 1. A
+game is written and read by `bridges_save.dart`:
 
 ```json
 {
@@ -397,7 +400,8 @@ game in progress, and the key uses only the level and the date, so a new
 version still finds today's game. Whether the game is solved now follows from
 the puzzle and the bridges.
 
-The history lists the first solve of each level and day:
+The history, written and read by `lib/core/solve_history.dart` in the same
+form for every puzzle, lists the first solve of each level and day:
 
 ```json
 {
