@@ -264,11 +264,13 @@ share a tree say `has to share a tree`, and their trees say `shared by too
 many tents`. Free cells are
 buttons that change the cell. Each number has a label with the tents placed,
 for example `Column 4: 2 tents, 2 placed, complete`, and the board has one
-with its size, its trees and the tents placed. Nothing depends on color
-alone: problems have bands, rings and words, and trees, tents and grass have
-different shapes. The tents use the theme's primary color. The trees use a
-calm green and brown chosen for each brightness, the only colors outside the
-theme.
+with its size, its trees and the tents placed. The status line, the solved
+panel and larger text work as [for Bridges](bridges.md#accessibility), so the
+row and column numbers keep their size, and a solve moves the focus to Done.
+Nothing depends on color alone: problems have bands, rings and words, and
+trees, tents and grass have different shapes. The tents use the theme's
+primary color. The trees use a calm green and brown chosen for each
+brightness, the only colors outside the theme.
 
 ## Saving
 

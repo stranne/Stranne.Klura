@@ -104,11 +104,19 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
   /// Whether the how-to-play sheet covers the board.
   bool _isReadingHowToPlay = false;
 
+  /// Whether the game was solved when it last changed, to notice the move
+  /// that solves it.
+  late bool _isSolved;
+
+  final FocusNode _doneFocus = FocusNode(debugLabel: 'Done');
+
   PuzzleController<Enum, G> get _controller => widget.controller;
 
   @override
   void initState() {
     super.initState();
+    _isSolved = _controller.game.isSolved;
+    _controller.addListener(_onGameChanged);
     _appState = WidgetsBinding.instance.lifecycleState;
     _lifecycle = AppLifecycleListener(
       onStateChange: (state) {
@@ -123,7 +131,11 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
   void didUpdateWidget(PuzzleScreen<G> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.pauseTiming();
+      oldWidget.controller
+        ..removeListener(_onGameChanged)
+        ..pauseTiming();
+      _controller.addListener(_onGameChanged);
+      _isSolved = _controller.game.isSolved;
       _updateTiming();
     }
   }
@@ -132,8 +144,27 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
   void dispose() {
     _noticeTimer?.cancel();
     _lifecycle.dispose();
-    _controller.pauseTiming();
+    _controller
+      ..removeListener(_onGameChanged)
+      ..pauseTiming();
+    _doneFocus.dispose();
     super.dispose();
+  }
+
+  /// Moves the focus to Done once a move solves the puzzle. The board and
+  /// the buttons below it then give up the focus, which would otherwise
+  /// jump back to the app bar.
+  void _onGameChanged() {
+    final isSolved = _controller.game.isSolved;
+    if (isSolved && !_isSolved) {
+      // The solved panel takes the focus once it has been built as shown.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _doneFocus.requestFocus();
+        }
+      });
+    }
+    _isSolved = isSolved;
   }
 
   /// Runs the timer only while the player can see the board: the app is in
@@ -264,6 +295,7 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
                         onUndo: _undo,
                         onReset: _reset,
                         onDone: () => Navigator.of(context).maybePop(),
+                        doneFocus: _doneFocus,
                       ),
                     ),
                   ],
@@ -292,6 +324,7 @@ class _BottomPanel extends StatelessWidget {
     required this.onUndo,
     required this.onReset,
     required this.onDone,
+    required this.doneFocus,
   });
 
   final PuzzleGame game;
@@ -307,6 +340,9 @@ class _BottomPanel extends StatelessWidget {
   final VoidCallback onUndo;
   final VoidCallback onReset;
   final VoidCallback onDone;
+
+  /// The focus of the solved panel's Done button.
+  final FocusNode doneFocus;
 
   @override
   Widget build(BuildContext context) {
@@ -324,8 +360,7 @@ class _BottomPanel extends StatelessWidget {
               children: [
                 _StatusLine(message: notice ?? problem),
                 const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                _ButtonRow(
                   children: [
                     OutlinedButton.icon(
                       onPressed: game.canUndo ? onUndo : null,
@@ -350,10 +385,29 @@ class _BottomPanel extends StatelessWidget {
               detail: solvedDetail,
               onReset: onReset,
               onDone: onDone,
+              doneFocus: doneFocus,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Buttons at either end of a row, or one above the other where large text
+/// leaves no room for them side by side.
+class _ButtonRow extends StatelessWidget {
+  const _ButtonRow({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return OverflowBar(
+      alignment: MainAxisAlignment.spaceBetween,
+      overflowAlignment: OverflowBarAlignment.center,
+      overflowSpacing: 4,
+      children: children,
     );
   }
 }
@@ -375,41 +429,48 @@ class _StatusLine extends StatelessWidget {
         (style.height ?? 1.2) *
         2;
 
+    // A live region speaks its own label when it changes, so the message is
+    // its label. The text below is left out: while one message fades into
+    // the next, both are on screen and would be read together.
     return Semantics(
+      container: true,
       liveRegion: true,
-      child: SizedBox(
-        height: height,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 160),
-          child: switch (message) {
-            null => const SizedBox.shrink(),
-            (:final text, :final isProblem) => Center(
-              key: ValueKey(text),
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    if (isProblem)
-                      WidgetSpan(
-                        alignment: PlaceholderAlignment.middle,
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: Icon(
-                            Icons.info_outline,
-                            size: 18,
-                            color: theme.colorScheme.error,
+      label: message?.text,
+      child: ExcludeSemantics(
+        child: SizedBox(
+          height: height,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 160),
+            child: switch (message) {
+              null => const SizedBox.shrink(),
+              (:final text, :final isProblem) => Center(
+                key: ValueKey(text),
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      if (isProblem)
+                        WidgetSpan(
+                          alignment: PlaceholderAlignment.middle,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: Icon(
+                              Icons.info_outline,
+                              size: 18,
+                              color: theme.colorScheme.error,
+                            ),
                           ),
                         ),
-                      ),
-                    TextSpan(text: text),
-                  ],
+                      TextSpan(text: text),
+                    ],
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: style,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: style,
               ),
-            ),
-          },
+            },
+          ),
         ),
       ),
     );
@@ -422,6 +483,7 @@ class _SolvedPanel extends StatelessWidget {
     required this.detail,
     required this.onReset,
     required this.onDone,
+    required this.doneFocus,
   });
 
   /// The time the first solve took, or `null` if the timer is hidden.
@@ -433,6 +495,9 @@ class _SolvedPanel extends StatelessWidget {
   final VoidCallback onReset;
   final VoidCallback onDone;
 
+  /// The focus of the Done button.
+  final FocusNode doneFocus;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -443,43 +508,53 @@ class _SolvedPanel extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // A live region speaks its own label, so it says the whole message.
         Semantics(
+          container: true,
           liveRegion: true,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.check_circle, color: theme.colorScheme.primary),
-              const SizedBox(width: 8),
-              Text('Solved', style: theme.textTheme.titleMedium),
-              Flexible(
-                child: switch (solveTime) {
-                  final time? => Text(
-                    '  ·  ${formatPlayTime(time)}',
-                    semanticsLabel: 'in ${describePlayTime(time)}',
-                    style: detailStyle?.copyWith(
-                      fontFeatures: const [FontFeature.tabularFigures()],
+          label: switch (solveTime) {
+            final time? => 'Solved in ${describePlayTime(time)}',
+            null => 'Solved. $detail',
+          },
+          child: ExcludeSemantics(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.check_circle, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Text('Solved', style: theme.textTheme.titleMedium),
+                Flexible(
+                  child: switch (solveTime) {
+                    final time? => Text(
+                      '  ·  ${formatPlayTime(time)}',
+                      style: detailStyle?.copyWith(
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
                     ),
-                  ),
-                  null => Text(
-                    '  ·  $detail',
-                    overflow: TextOverflow.ellipsis,
-                    style: detailStyle,
-                  ),
-                },
-              ),
-            ],
+                    null => Text(
+                      '  ·  $detail',
+                      overflow: TextOverflow.ellipsis,
+                      style: detailStyle,
+                    ),
+                  },
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        _ButtonRow(
           children: [
             TextButton.icon(
               onPressed: onReset,
               icon: const Icon(Icons.restart_alt),
               label: const Text('Start over'),
             ),
-            FilledButton(onPressed: onDone, child: const Text('Done')),
+            FilledButton(
+              focusNode: doneFocus,
+              onPressed: onDone,
+              child: const Text('Done'),
+            ),
           ],
         ),
       ],

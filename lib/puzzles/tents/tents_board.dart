@@ -580,7 +580,9 @@ class _LineNumber extends StatelessWidget {
                 height: 1,
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
-              child: Text('$count'),
+              // The number is sized to its cell, which grows with the board.
+              // Larger text would push it out of its ring.
+              child: Text('$count', textScaler: TextScaler.noScaling),
             ),
           ),
         ),

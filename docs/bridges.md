@@ -298,8 +298,9 @@ bridge gives a lighter tick.
   move, each island lifting once as it passes, and after about a second a
   panel says `Solved` with buttons to start over or return home. The board
   then takes no more moves, and it gives up the keyboard focus and leaves the
-  tab order, so no focus ring is left on an island. With reduced motion, the
-  board skips the wave and the shake.
+  tab order, so no focus ring is left on an island. The focus moves to Done
+  instead, so Enter returns home. With reduced motion, the board skips the
+  wave and the shake.
 
 ### Undo and start over
 
@@ -378,10 +379,16 @@ its bridges by direction, for example `Island 4, row 2, column 3. 2 of 4
 bridges. 1 up, 1 to the right`. The board has a label with its size and how
 many islands are complete, for example `Bridges board, 10 columns by 10
 rows, 30 islands, 12 complete`, since a screen reader cannot see the filled
-islands. The status line is a polite live region. Nothing depends on color
-alone: island states differ in shape, loops have a band, and the status line
-names every problem in words. The colors are the theme's own pairs in light
-and dark mode.
+islands. The status line and the solved panel are polite live regions that
+say only their message, for example `Solved in 4 minutes 12 seconds`. Nothing
+depends on color alone: island states differ in shape, loops have a band, and
+the status line names every problem in words. The colors are the theme's own
+pairs in light and dark mode.
+
+Larger text, such as a bigger default font size in the browser, grows the
+text around the board. The buttons below the board stack when they no longer
+fit side by side. The numbers on the islands keep their size, since they are
+sized to their circles, which grow with the board instead.
 
 ## Saving
 

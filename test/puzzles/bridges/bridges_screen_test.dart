@@ -1,4 +1,5 @@
 import 'package:flutter/gestures.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klura/app/klura_settings.dart';
@@ -45,6 +46,8 @@ void main() {
     WidgetTester tester,
     String board, {
     bool disableAnimations = false,
+    Size screen = const Size(400, 800),
+    double textScale = 1,
   }) async {
     final (:puzzle, :arrangement) = parseBridges(board);
     now = Duration.zero;
@@ -59,7 +62,7 @@ void main() {
     settings = KluraSettings(store);
     addTearDown(settings.dispose);
     sounds = _RecordedSounds();
-    tester.view.physicalSize = const Size(400, 800);
+    tester.view.physicalSize = screen;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
@@ -67,7 +70,8 @@ void main() {
       MaterialApp(
         home: MediaQuery(
           data: MediaQueryData(
-            size: const Size(400, 800),
+            size: screen,
+            textScaler: TextScaler.linear(textScale),
             disableAnimations: disableAnimations,
           ),
           child: BridgesScreen(
@@ -104,6 +108,14 @@ void main() {
       (centerOf(tester, controller, const Position(1, 0)) -
               centerOf(tester, controller, const Position(0, 0)))
           .dx;
+
+  /// What each live region on screen says, as a screen reader speaks it
+  /// when it changes.
+  List<String> liveRegionLabels() => [
+    for (final node
+        in find.semantics.byFlag(SemanticsFlag.isLiveRegion).evaluate())
+      node.label,
+  ];
 
   testWidgets('dragging from an island toward a neighbor builds a bridge', (
     tester,
@@ -475,6 +487,24 @@ void main() {
     expect(boardHasFocus(), isTrue);
   });
 
+  testWidgets('the move that solves the puzzle moves the focus to Done', (
+    tester,
+  ) async {
+    final controller = await pumpGame(tester, small);
+    await tester.tapAt(centerOf(tester, controller, const Position(1, 1)));
+    await tester.pump();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pumpAndSettle();
+
+    expect(controller.game.isSolved, isTrue);
+    expect(Focus.of(tester.element(find.text('Done'))).hasPrimaryFocus, isTrue);
+  });
+
   testWidgets('describes islands and progress for screen readers', (
     tester,
   ) async {
@@ -522,6 +552,31 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('the status line speaks its message alone', (tester) async {
+    const problems =
+        'Some bridges form a loop · An island has too many bridges';
+    const notice = 'Board cleared. Undo brings the bridges back.';
+    final semantics = tester.ensureSemantics();
+    await pumpGame(tester, '''
+2-4=1
+|.|..
+2-2..
+''');
+    await tester.pump();
+
+    expect(liveRegionLabels(), [problems]);
+
+    // Halfway through the fade from the problems to the notice, both are
+    // on screen, but only the notice is said.
+    await tester.tap(find.text('Start over').hitTestable());
+    await tester.pump(const Duration(milliseconds: 80));
+
+    expect(find.textContaining(problems), findsOneWidget);
+    expect(find.textContaining(notice), findsOneWidget);
+    expect(liveRegionLabels(), [notice]);
+    semantics.dispose();
+  });
+
   testWidgets('names loops and overfull islands in words', (tester) async {
     await pumpGame(tester, '''
 2-4=1
@@ -554,6 +609,40 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('the numbers on the islands keep their size with large text', (
+    tester,
+  ) async {
+    await pumpGame(tester, small);
+    final number = tester.getSize(find.text('3'));
+    final undo = tester.getSize(find.text('Undo'));
+
+    await pumpGame(tester, small, textScale: 2);
+
+    expect(tester.getSize(find.text('3')), number);
+    expect(tester.getSize(find.text('Undo')).height, greaterThan(undo.height));
+  });
+
+  testWidgets('large text fits on a narrow phone', (tester) async {
+    final controller = await pumpGame(
+      tester,
+      small,
+      screen: const Size(320, 640),
+      textScale: 2,
+    );
+
+    // A layout that overflows reports an exception.
+    expect(tester.takeException(), isNull);
+
+    controller
+      ..cycleBridges(top)
+      ..cycleBridges(top)
+      ..cycleBridges(left);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Done').hitTestable(), findsOneWidget);
   });
 
   group('timer', () {
@@ -689,6 +778,25 @@ void main() {
 
       expect(find.text('  ·  All 3 islands are linked'), findsOneWidget);
       expect(find.textContaining('2:30'), findsNothing);
+    });
+
+    testWidgets('a screen reader hears the solve and its time', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final controller = await pumpGame(tester, small, disableAnimations: true);
+      now += const Duration(minutes: 2, seconds: 30);
+      controller
+        ..cycleBridges(top)
+        ..cycleBridges(top)
+        ..cycleBridges(left);
+      await tester.pumpAndSettle();
+
+      expect(liveRegionLabels(), ['Solved in 2 minutes 30 seconds']);
+
+      settings.showTimer = false;
+      await tester.pumpAndSettle();
+
+      expect(liveRegionLabels(), ['Solved. All 3 islands are linked']);
+      semantics.dispose();
     });
   });
 

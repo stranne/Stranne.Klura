@@ -696,7 +696,12 @@ class _IslandView extends StatelessWidget {
                 height: 1,
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
-              child: Text('${island.requiredBridges}'),
+              // The number is sized to its island, which grows with the
+              // board. Larger text would push it out of the circle.
+              child: Text(
+                '${island.requiredBridges}',
+                textScaler: TextScaler.noScaling,
+              ),
             ),
           ),
         ),

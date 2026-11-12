@@ -30,6 +30,7 @@ void main() {
     WidgetTester tester,
     String board, {
     bool disableAnimations = false,
+    double textScale = 1,
   }) async {
     final (puzzle, marks) = parseTents(board);
     final controller = TentsController(
@@ -51,6 +52,7 @@ void main() {
         home: MediaQuery(
           data: MediaQueryData(
             size: const Size(400, 800),
+            textScaler: TextScaler.linear(textScale),
             disableAnimations: disableAnimations,
           ),
           child: TentsScreen(
@@ -350,6 +352,17 @@ void main() {
       findsOneWidget,
     );
     semantics.dispose();
+  });
+
+  testWidgets('the row and column numbers keep their size with large text', (
+    tester,
+  ) async {
+    await pumpGame(tester, small);
+    final number = tester.getSize(find.text('2'));
+
+    await pumpGame(tester, small, textScale: 2);
+
+    expect(tester.getSize(find.text('2')), number);
   });
 
   testWidgets('start over clears the board and undo brings it back', (
