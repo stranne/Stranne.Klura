@@ -382,7 +382,7 @@ class BridgesBoardPainter extends CustomPainter {
     if (count == 0 || length <= 0) {
       return;
     }
-    var (start, end) = geometry.bridgeEnds(connection);
+    var (start, end) = geometry.bridgeLineEnds(connection);
     if (from == connection.end) {
       (start, end) = (end, start);
     }

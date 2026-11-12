@@ -30,10 +30,20 @@ final class BridgesBoardGeometry {
 
   /// Where a bridge on [connection] starts and ends: just outside the
   /// islands at its ends.
-  (Offset, Offset) bridgeEnds(Connection connection) {
+  (Offset, Offset) bridgeEnds(Connection connection) =>
+      _ends(connection, inset: islandRadius + cellSize * 0.04);
+
+  /// Where the lines of a bridge on [connection] are drawn from and to:
+  /// halfway into the islands at its ends.
+  ///
+  /// The islands are drawn above the bridges, so every line, both lines of
+  /// a double bridge too, meets the round edge of its island without a gap.
+  (Offset, Offset) bridgeLineEnds(Connection connection) =>
+      _ends(connection, inset: islandRadius / 2);
+
+  (Offset, Offset) _ends(Connection connection, {required double inset}) {
     final start = centerOf(connection.start);
     final end = centerOf(connection.end);
-    final inset = islandRadius + cellSize * 0.04;
     final direction = (end - start) / (end - start).distance;
     return (start + direction * inset, end - direction * inset);
   }
