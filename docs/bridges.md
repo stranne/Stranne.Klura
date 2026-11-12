@@ -63,7 +63,7 @@ several solutions; no unique puzzle has needed deeper trial and error.
 ## Code
 
 The logic lives in `lib/puzzles/bridges/logic/` and does not depend on
-Flutter.
+Flutter. The screen that plays it lives beside it in `lib/puzzles/bridges/`.
 
 | File | Responsibility |
 | --- | --- |
@@ -74,7 +74,17 @@ Flutter.
 | `bridges_solver.dart` | `solveBridges`, which finds solutions up to a limit, and `gradeBridges` |
 | `bridges_generator.dart` | `BridgesLevel`, `BridgesConfig`, `generateBridges` and the daily entry point |
 | `bridges_text.dart` | `formatBridges` and `parseBridges`: a text notation for tests |
+| `bridges_game.dart` | `BridgesGame`: a game in progress, with its moves, undo history and rules check |
 | `union_find.dart` | Disjoint groups of islands, shared by the rules check and the solver |
+
+| File in `lib/puzzles/bridges/` | Responsibility |
+| --- | --- |
+| `bridges_controller.dart` | `BridgesController`: holds one `BridgesGame` and tells the screen about each move |
+| `bridges_daily_games.dart` | `BridgesDailyGames`: the day's game at each level, kept for the session |
+| `bridges_screen.dart` | The game screen: board, status line, buttons, solved panel and how to play |
+| `bridges_board.dart` | The board widget: layout, gestures, keyboard, islands and their semantics |
+| `bridges_board_painter.dart` | Paints grid dots, bridges, previews and the marks for loops, blocked moves and the solve |
+| `bridges_board_geometry.dart` | Places cells in pixels and finds the island or bridge under a pointer |
 
 ## Rules check
 
@@ -199,18 +209,89 @@ For example, the Normal puzzle of 2026-11-11 and its solution:
 1..3.4.3.3    1..3=4=3-3
 ```
 
-## Interaction goals for version 1
+## Playing
 
-- Drag from an island toward a neighbor to add a bridge; tap a bridge to cycle
-  between one, two and none.
-- A bridge that would cross another is not placed; give a small shake instead
-  of an error message.
-- Islands change appearance when their count is met. Gently mark overfull
-  islands and closed loops.
-- Unlimited undo, an optional quiet timer and a short completion animation.
-- Progress saves automatically. Opening the same puzzle again restores it.
-- A reset clears every bridge to start over, also after the puzzle is solved.
-- The next day's puzzle appears on the next launch. An open game is never
-  replaced while the player is in it.
-- Try the interaction on a phone early and adjust it until play feels smooth.
+The home screen lists today's Normal and Hard puzzles. The app reads the date
+once when it starts, so a new day's puzzles appear on the next launch and an
+open game is never replaced. Each level's puzzle is generated when first
+opened, which takes a few milliseconds, and the game stays in memory for the
+session: leaving a puzzle and coming back resumes it. The puzzles have their
+own routes, `#/bridges/normal` and `#/bridges/hard`, so the browser's back
+button returns home. Progress does not yet survive a reload.
+
+### Building bridges
+
+- **Drag** from an island toward a neighbor and let go to move the bridges
+  between them one step through the cycle one, two, none. The drag only has
+  to point the way: once it has moved about half a cell, its main direction
+  picks the nearest island that way, and a faint preview shows the result
+  while the finger is still down. Dragging back to the island cancels. A drag
+  may start up to three quarters of a cell from an island's center, which
+  helps on a phone where a finger hides the island.
+- **Tap** a bridge to move it through the same cycle. Tapping the empty gap
+  between two facing islands builds the first bridge, unless two possible
+  bridges cross right there, where the tap is ambiguous and does nothing. A
+  tap where a bridge lies always changes that bridge. Tapping an island does
+  nothing.
+- **Keys**: the board is a single tab stop. The arrow keys move a focus ring
+  to the neighbor a bridge would reach, or else to the nearest island that
+  way. Shift with an arrow moves the bridges in that direction through the
+  cycle. Ctrl+Z or Cmd+Z undoes.
+- **Mouse**: hovering a gap or a bridge previews what a click would make, and
+  hovering an island shows faint dashes to each neighbor it can still bridge
+  to. The same dashes show from a pressed island and from the island with
+  keyboard focus.
+
+Drag and tap share one cycle, so there is one rule to learn, and removing a
+double bridge needs no separate gesture. A new bridge grows out of the
+island a drag started at, or from its middle after a tap, in about 150 ms;
+removed bridges fade.
+
+A bridge that would cross another is never placed. While dragging, the
+attempt shows as a red dashed line and the bridges in its way turn red. On
+release those bridges shake briefly, the status line says that bridges
+cannot cross, and phones that support it give a short vibration. Placing a
+bridge gives a lighter tick.
+
+### Feedback
+
+- An island needing more bridges is an outlined ring. A met island is filled
+  with the primary color. An overfull island gets a red ring, a red number
+  and a soft red halo. Fill, outline and halo differ as well as color.
+- Bridges on a loop turn red over a soft red band.
+- The status line counts complete islands, for example `12 of 30 islands
+  complete`. When something is wrong it names it in words instead: a loop,
+  islands with too many bridges, or every number met while the islands are
+  not all linked.
+- When a move solves the puzzle, light spreads along the bridges from that
+  move, each island lifting once as it passes, and after about a second a
+  panel says `Solved` with buttons to start over or return home. The board
+  then takes no more moves. With reduced motion, the board skips the wave and
+  the shake.
+
+### Undo and start over
+
+Undo has no limit. Start over clears every bridge as a single move, so Undo
+brings them back, and it needs no confirmation dialog. After a solve, Undo is
+hidden and Start over remains.
+
+### Accessibility
+
+Each island has a label with its number, row and column, its progress and
+its bridges by direction, for example `Island 4, row 2, column 3. 2 of 4
+bridges. 1 up, 1 to the right`. The board has a label with its size, and the
+status line is a polite live region. Nothing depends on color alone: island
+states differ in shape, loops have a band, and the status line names every
+problem in words. The colors are the theme's own pairs in light and dark
+mode.
+
+### Still to come
+
+- Saving: progress saves automatically and opening the same puzzle again
+  restores it. A saved game needs the level, the seed key, the puzzle itself
+  and the arrangement; whether it is solved follows from those. The undo
+  history and the session date could be saved too.
+- An optional quiet timer.
 - No accounts, ads or hints in version 1.
+- The interaction has been tried in Chrome with phone emulation. It still
+  needs a session on a real phone.
