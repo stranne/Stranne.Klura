@@ -2,7 +2,7 @@
 
 Small daily logic puzzles for the web, built with Flutter. Each puzzle type
 gets a new puzzle every day, generated on the device from the date. Klura is a
-personal, non-commercial hobby project.
+personal, non-commercial hobby project, played at <https://klura.stranne.se/>.
 
 There are two puzzles so far:
 
@@ -50,9 +50,9 @@ and [docs/tents.md](docs/tents.md#performance) record the latest numbers.
 flutter build web
 ```
 
-For GitHub Pages, pass the repository name as the base path, for example
-`flutter build web --base-href /klura/` for `https://<user>.github.io/klura/`.
-The app uses hash URLs (`#/...`), which GitHub Pages serves without extra
+To serve the app below a path rather than at the root of a domain, pass the
+path as the base, for example `flutter build web --base-href /klura/` for
+`https://<user>.github.io/klura/`. The app uses hash URLs (`#/...`), which GitHub Pages serves without extra
 configuration.
 
 The page loads files from its own site only. `web/index.html` sets a content
@@ -66,10 +66,13 @@ needs a change to the policy.
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the checks above
 on every push and pull request to `main`. Once they pass on a push to `main`,
-or on a manual run on `main`, it builds the app with
-`flutter build web --release --base-href /<repository>/` and deploys
-`build/web` to GitHub Pages. It installs the Flutter version set in its
-`FLUTTER_VERSION`, so update that together with the local SDK.
+or on a manual run on `main`, it builds the app in release mode and deploys
+`build/web` to GitHub Pages. It takes the base href from the Pages settings:
+`/` for a custom domain, `/<repository>/` for
+`https://<user>.github.io/<repository>/`. A change to the custom domain
+takes effect with the next deploy, so run the workflow again after one. It
+installs the Flutter version set in its `FLUTTER_VERSION`, so update that
+together with the local SDK.
 
 One-time setup on GitHub:
 
@@ -91,6 +94,22 @@ One-time setup on GitHub:
 The app is then at `https://<user>.github.io/<repository>/`, and each puzzle
 has its own address below it, for example
 `https://<user>.github.io/<repository>/#/bridges/normal`.
+
+Klura itself runs on a custom domain, which gives it a browser origin of its
+own: on `<user>.github.io`, every project site of the account shares one
+origin, with its storage and scripts. To set one up:
+
+1. Verify the domain for GitHub Pages under the account's Settings → Pages,
+   so no other account can use it.
+2. Add a DNS `CNAME` record from the subdomain, such as `klura`, to
+   `<user>.github.io`.
+3. Enter the subdomain under the repository's Settings → Pages → Custom
+   domain, and select Enforce HTTPS once the certificate is ready.
+4. Run the workflow again, so the build uses the new base href. Until then,
+   the site at the new address cannot find its files.
+
+The old address then redirects to the new one. Saved games and solve times
+stay with the address they were made at.
 
 ### Updates and caching
 
