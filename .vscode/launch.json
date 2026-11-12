@@ -1,0 +1,53 @@
+{
+  // Run and debug configurations for the Dart and Flutter extensions.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Klura",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "deviceId": "chrome"
+    },
+    {
+      // Profile mode runs close to release speed and still lets DevTools
+      // record performance, for checking that animations stay smooth.
+      "name": "Klura (profile)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "deviceId": "chrome",
+      "flutterMode": "profile"
+    },
+    {
+      // Release mode is what GitHub Pages serves.
+      "name": "Klura (release)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "deviceId": "chrome",
+      "flutterMode": "release"
+    },
+    {
+      "name": "Tests",
+      "type": "dart",
+      "request": "launch",
+      "program": "test/"
+    },
+    {
+      // Asserts stay off so the times match `dart run`.
+      "name": "Benchmark Bridges",
+      "type": "dart",
+      "request": "launch",
+      "program": "tool/benchmark_bridges.dart",
+      "enableAsserts": false
+    },
+    {
+      "name": "Benchmark Tents",
+      "type": "dart",
+      "request": "launch",
+      "program": "tool/benchmark_tents.dart",
+      "enableAsserts": false
+    }
+  ]
+}

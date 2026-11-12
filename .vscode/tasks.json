@@ -1,0 +1,86 @@
+{
+  // Tasks for the checks and scripts in AGENTS.md and the README. They run
+  // through the Dart and Flutter extensions, which use the SDK they found
+  // rather than the one on PATH. The analysis server already reports
+  // analyzer issues in the Problems view, so no task scans its output.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Check",
+      "detail": "Every gate from AGENTS.md, in the order CI runs them",
+      "dependsOn": [
+        "Check: format",
+        "Check: analyze",
+        "Check: test",
+        "Check: web tests"
+      ],
+      "dependsOrder": "sequence",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Check: format",
+      "type": "dart",
+      "command": "dart",
+      "args": ["format", "--output=none", "--set-exit-if-changed", "."],
+      "problemMatcher": []
+    },
+    {
+      "label": "Check: analyze",
+      "type": "flutter",
+      "command": "flutter",
+      "args": ["analyze"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Check: test",
+      "type": "flutter",
+      "command": "flutter",
+      "args": ["test"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Check: web tests",
+      "detail": "The Flutter-free tests compiled to JavaScript and WebAssembly; needs Node.js on PATH",
+      "type": "dart",
+      "command": "dart",
+      "args": [
+        "test",
+        "-p",
+        "node",
+        "-c",
+        "dart2js,dart2wasm",
+        "test/core",
+        "test/puzzles/bridges/logic",
+        "test/puzzles/tents/logic"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Format",
+      "type": "dart",
+      "command": "dart",
+      "args": ["format", "."],
+      "problemMatcher": []
+    },
+    {
+      "label": "Build web",
+      "type": "flutter",
+      "command": "flutter",
+      "args": ["build", "web"],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Generate icons",
+      "detail": "Regenerates the icons in web/ from design/icon/; needs ImageMagick 7 on PATH",
+      "type": "dart",
+      "command": "dart",
+      "args": ["run", "tool/generate_icons.dart"],
+      "problemMatcher": []
+    }
+  ]
+}

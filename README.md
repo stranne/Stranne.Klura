@@ -17,6 +17,12 @@ There are two puzzles so far:
 flutter run -d chrome
 ```
 
+In VS Code, install the recommended Flutter extension. Run and Debug then
+lists the app in Chrome in debug, profile and release mode, the tests and both
+benchmarks. Tasks: Run Task lists each check below, Check to run them all in
+order, and tasks to format the code, build the app and generate the icons.
+Check is also the default test task.
+
 ## Check
 
 ```sh
@@ -131,3 +137,4 @@ dart run tool/generate_icons.dart
 | `tool/` | Development scripts: the icon generator and the benchmark of each puzzle |
 | `docs/` | Puzzle rules and design notes |
 | `.github/workflows/` | CI: the checks, and the build and deploy to GitHub Pages |
+| `.vscode/` | VS Code launch configurations, tasks and the recommended extension |
