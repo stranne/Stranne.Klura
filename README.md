@@ -11,6 +11,10 @@ There are two puzzles so far:
 - [Tents](docs/tents.md): give every tree a tent of its own beside it, keep
   tents from touching and match the number of tents in each row and column.
 
+A third, [Logjam](docs/logjam.md), is on its way: slide logs along their own
+lines until the marked one can float out. So far it has its rules, solver and
+generator but no screen, and its name is a working name.
+
 [Mental gym](docs/mental-gym.md) compares the skills each puzzle trains and
 sets the rule for choosing the next one.
 
@@ -32,7 +36,7 @@ Check is also the default test task.
 dart format --output=none --set-exit-if-changed .
 flutter analyze
 flutter test
-dart test -p node -c dart2js,dart2wasm test/core test/puzzles/bridges/logic test/puzzles/tents/logic
+dart test -p node -c dart2js,dart2wasm test/core test/puzzles/bridges/logic test/puzzles/tents/logic test/puzzles/logjam/logic
 ```
 
 The last command runs the Flutter-free tests compiled to JavaScript and to
@@ -42,10 +46,12 @@ generate different puzzles than the VM. It needs Node.js on `PATH`.
 `flutter test --platform chrome` currently stalls on the Windows ARM64
 development machine.
 
-To time generation on the VM, run `dart run tool/benchmark_bridges.dart` or
-`dart run tool/benchmark_tents.dart`. The scripts' documentation shows how to
-run them under Node.js, and [docs/bridges.md](docs/bridges.md#performance)
-and [docs/tents.md](docs/tents.md#performance) record the latest numbers.
+To time generation on the VM, run `dart run tool/benchmark_bridges.dart`,
+`dart run tool/benchmark_tents.dart` or `dart run tool/benchmark_logjam.dart`.
+The scripts' documentation shows how to run them under Node.js, and
+[docs/bridges.md](docs/bridges.md#performance),
+[docs/tents.md](docs/tents.md#performance) and
+[docs/logjam.md](docs/logjam.md#performance) record the latest numbers.
 
 ## Build
 
@@ -160,7 +166,7 @@ dart run tool/generate_icons.dart
 | `lib/home/` | Home screen listing today's puzzles and their progress |
 | `lib/core/` | Flutter-free helpers shared by puzzles: seeded random, daily seed keys, calendar dates, play times, grid positions, the game interface, the solve history, the storage of daily games and the `LocalStore` interface |
 | `lib/play/` | What every puzzle screen shares: the play timer, the sounds of moves, the controller base, the daily games of one puzzle and the puzzle screen with its clock, sound button, status line, buttons, solved panel and how-to-play sheet |
-| `lib/puzzles/<name>/` | One folder per puzzle type, Bridges and Tents: its screen, board, controller and daily games, with the Flutter-free rules, solver, generator, game state and save format in `logic/` |
+| `lib/puzzles/<name>/` | One folder per puzzle type, Bridges and Tents: its screen, board, controller and daily games, with the Flutter-free rules, solver, generator, game state and save format in `logic/`. Logjam, the third, has only its rules, solver and generator so far |
 | `web/` | Web shell: loading screen, content security policy, manifest and generated icons |
 | `fonts/` | The Roboto font with its license, bundled so the web engine does not download it |
 | `design/icon/` | SVG sources for the icons |

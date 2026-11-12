@@ -48,6 +48,13 @@
       "request": "launch",
       "program": "tool/benchmark_tents.dart",
       "enableAsserts": false
+    },
+    {
+      "name": "Benchmark Logjam",
+      "type": "dart",
+      "request": "launch",
+      "program": "tool/benchmark_logjam.dart",
+      "enableAsserts": false
     }
   ]
 }

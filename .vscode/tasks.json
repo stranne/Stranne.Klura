@@ -55,7 +55,8 @@
         "dart2js,dart2wasm",
         "test/core",
         "test/puzzles/bridges/logic",
-        "test/puzzles/tents/logic"
+        "test/puzzles/tents/logic",
+        "test/puzzles/logjam/logic"
       ],
       "problemMatcher": []
     },

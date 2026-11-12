@@ -75,7 +75,7 @@ undecided.
 
 | Candidate | Main skill | Status |
 | --- | --- | --- |
-| Sliding blocks: pieces slide along their own line on a small grid until a marked piece can leave | Planning moves in the right order, holding in mind what the board does not show | Next. Every move can be undone, so there is no dead end. The fewest moves gives the difficulty, and showing it after a solve gives a replay a goal. The best-known version is a commercial board game, so the name, theme and levels must be Klura's own. |
+| Sliding blocks: pieces slide along their own line on a small grid until a marked piece can leave | Planning moves in the right order, holding in mind what the board does not show | Next. Every move can be undone, so there is no dead end. The fewest moves gives the difficulty, and showing it after a solve gives a replay a goal. The best-known version is a commercial board game, so the name, theme and levels must be Klura's own. The logic is built under the working name [Logjam](logjam.md). |
 | Shape packing: fit pieces into an outline | Turning shapes in your head | Later. Rotating and flipping pieces on a phone is fiddly. |
 | Statement logic: a few characters make claims about each other, and exactly one choice of who tells the truth fits | Judging which statements can be true together | Candidate. A generator can check every choice for a handful of characters. The wording must stay short and plain. |
 | Code-breaking: guess a hidden code and learn from each score | Testing guesses against hidden information | Passed over for now. Luck decides part of the result, there is one secret a day, and it is close to Wordle. Giving all the guesses and scores up front turns it into ruling out again. |
