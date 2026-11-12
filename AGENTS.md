@@ -59,6 +59,10 @@ changes, run `dart test -p node -c dart2js,dart2wasm` on those tests
 Do not use `flutter test --platform chrome` here; it stalls on this machine.
 For visible UI changes, run the app in Chrome and check the result.
 
+`.github/workflows/ci.yml` runs the same gates on GitHub and deploys `main`
+to GitHub Pages. When the project moves to a new Flutter version, update
+`FLUTTER_VERSION` there too.
+
 ## Git
 
 - Inspect `git status`, diffs and recent history before committing.
