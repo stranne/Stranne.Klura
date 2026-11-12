@@ -4,7 +4,7 @@ These instructions apply to the entire repository.
 
 ## Project
 
-Klura is a private, non-commercial Flutter web app with small daily logic
+Klura is a personal, non-commercial Flutter web app with small daily logic
 puzzles. The goal is a simple, smooth and calm experience. Bridges is the first
 puzzle; read [docs/bridges.md](docs/bridges.md) before working on it.
 

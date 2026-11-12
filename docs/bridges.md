@@ -127,8 +127,8 @@ propagation fail.
 ## Generator
 
 `generateBridges` builds a solution first and then makes sure that only it
-fits, as the earlier C# prototype in `C:\Source\Stranne.HahiPuzzle`
-(`Stranne.HashiPuzzle.Logic`) did. Each attempt:
+fits, as an earlier C# prototype, `Stranne.HashiPuzzle.Logic`, did. Each
+attempt:
 
 1. Places one island on a random cell, then adds islands one at a time,
    choosing at random among every possible move. A move either runs a new
@@ -175,8 +175,8 @@ On 2026-11-11, on the development machine (Windows on ARM):
 Normal puzzles need 10 attempts on average and 80 at worst (2028-05-17); Hard
 puzzles need 11 on average and 71 at worst (2028-04-07). Growing the board and
 grading it take about equal shares of the time, and each attempt uses only a
-few kilobytes. A phone browser is slower than this machine, but the margin is
-wide.
+few kilobytes. A phone browser is slower than the development machine, but
+the margin is wide.
 
 The two-year test fails if any day needs more than 200 attempts. Attempt
 counts are deterministic, unlike timings, so the ceiling catches a generator

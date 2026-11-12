@@ -2,7 +2,7 @@
 
 Small daily logic puzzles for the web, built with Flutter. Each puzzle type
 gets a new puzzle every day, generated on the device from the date. Klura is a
-private, non-commercial hobby project.
+personal, non-commercial hobby project.
 
 The first puzzle is [Bridges](docs/bridges.md): connect the islands so every
 number is met, all islands are linked and no loops form.
@@ -26,8 +26,8 @@ The last command runs the Flutter-free tests compiled to JavaScript and to
 WebAssembly under Node.js. They must pass there too, otherwise the web would
 generate different puzzles than the VM. It needs Node.js on `PATH`.
 
-`flutter test --platform chrome` currently stalls on this Windows ARM64
-machine.
+`flutter test --platform chrome` currently stalls on the Windows ARM64
+development machine.
 
 To time Bridges generation on the VM, run `dart run tool/benchmark_bridges.dart`.
 The script's documentation shows how to run it under Node.js, and
