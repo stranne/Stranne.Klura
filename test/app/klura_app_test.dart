@@ -83,7 +83,7 @@ void main() {
     leaveAndReturn(tester);
     await tester.pump();
 
-    expect(find.text('Thursday, November 12, 2026'), findsOneWidget);
+    expect(find.text('Thu, Nov 12'), findsOneWidget);
     expect(find.text('In progress'), findsNothing);
     expect(BridgesStorage(store).loadGame(BridgesLevel.normal, today), isNull);
 
@@ -117,7 +117,7 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    expect(find.text('Thursday, November 12, 2026'), findsOneWidget);
+    expect(find.text('Thu, Nov 12'), findsOneWidget);
     expect(find.text('In progress'), findsNothing);
     expect(BridgesStorage(store).loadGame(BridgesLevel.hard, today), isNull);
   });
@@ -155,13 +155,13 @@ void main() {
       KluraApp(store: MemoryLocalStore(), clock: () => now),
     );
 
-    expect(find.text('Wednesday, November 11, 2026'), findsOneWidget);
+    expect(find.text('Wed, Nov 11'), findsOneWidget);
 
     now = DateTime(2026, 11, 12, 0, 0, 1);
     await tester.pump(const Duration(seconds: 30));
     await tester.pump();
 
-    expect(find.text('Thursday, November 12, 2026'), findsOneWidget);
+    expect(find.text('Thu, Nov 12'), findsOneWidget);
   });
 
   testWidgets('restores a game after a reload', (tester) async {
@@ -239,7 +239,7 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    expect(find.text('Thursday, November 12, 2026'), findsOneWidget);
+    expect(find.text('Thu, Nov 12'), findsOneWidget);
     expect(find.text('In progress'), findsNothing);
     expect(TentsStorage(store).loadGame(TentsLevel.hard, today), isNull);
   });

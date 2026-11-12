@@ -213,8 +213,8 @@ For example, the Normal puzzle of 2026-11-12 and its solution:
 
 ## Playing
 
-The home screen lists today's Normal and Hard puzzles below Bridges, with
-how far each has come. They have their own routes, `#/tents/normal` and
+The home screen lists today's Normal and Hard puzzles after Bridges, beside
+it where the screen is wide enough, with how far each has come. They have their own routes, `#/tents/normal` and
 `#/tents/hard`. Generation, saving, the move to a new day, undo, start over,
 the timer, sound and the solved panel work as for Bridges; see
 [Playing](bridges.md#playing).

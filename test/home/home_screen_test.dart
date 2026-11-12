@@ -18,6 +18,8 @@ void main() {
   Future<(BridgesDailyGames, TentsDailyGames, KluraSettings)> pumpBoth(
     WidgetTester tester, {
     LocalStore? store,
+    Size size = const Size(400, 1000),
+    double textScale = 1,
   }) async {
     final storage = store ?? MemoryLocalStore();
     final bridges = BridgesDailyGames(today, BridgesStorage(storage));
@@ -26,9 +28,11 @@ void main() {
     addTearDown(tents.dispose);
     final settings = KluraSettings(storage);
     addTearDown(settings.dispose);
-    tester.view.physicalSize = const Size(400, 1000);
+    tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
+    tester.platformDispatcher.textScaleFactorTestValue = textScale;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await tester.pumpWidget(
       MaterialApp(
         home: HomeScreen(
@@ -50,11 +54,13 @@ void main() {
     return (bridges, settings);
   }
 
+  /// The card of [puzzle].
+  Finder card(String puzzle) =>
+      find.ancestor(of: find.text(puzzle), matching: find.byType(Card));
+
   /// The text [text] in the card of [puzzle].
-  Finder inCard(String puzzle, String text) => find.descendant(
-    of: find.ancestor(of: find.text(puzzle), matching: find.byType(Card)),
-    matching: find.text(text),
-  );
+  Finder inCard(String puzzle, String text) =>
+      find.descendant(of: card(puzzle), matching: find.text(text));
 
   void solve(BridgesController game) {
     final solution = generateDailyBridges(game.level, today).solution;
@@ -67,10 +73,16 @@ void main() {
   }
 
   testWidgets('shows the date and both levels of each puzzle', (tester) async {
+    final semantics = tester.ensureSemantics();
     await pumpHome(tester);
 
     expect(find.text('Klura'), findsOneWidget);
-    expect(find.text('Wednesday, November 11, 2026'), findsOneWidget);
+    expect(find.text("Today's puzzles"), findsOneWidget);
+    expect(find.text('Wed, Nov 11'), findsOneWidget);
+    // The date is read aloud in full, with the name above it.
+    final header = tester.getSemantics(find.text('Wed, Nov 11')).label;
+    expect(header, contains('Wednesday, November 11, 2026'));
+    expect(header, isNot(contains('Wed, Nov 11')));
     expect(inCard('Bridges', 'Normal'), findsOneWidget);
     expect(inCard('Bridges', '10 × 10 · 30 islands'), findsOneWidget);
     expect(inCard('Bridges', 'Hard'), findsOneWidget);
@@ -80,6 +92,64 @@ void main() {
     expect(inCard('Tents', 'Hard'), findsOneWidget);
     expect(inCard('Tents', '10 × 10 · 20 tents'), findsOneWidget);
     expect(find.text('In progress'), findsNothing);
+    semantics.dispose();
+  });
+
+  testWidgets('places the puzzles side by side on a wide screen', (
+    tester,
+  ) async {
+    await pumpBoth(tester, size: const Size(1280, 800));
+
+    final bridges = tester.getRect(card('Bridges'));
+    final tents = tester.getRect(card('Tents'));
+    expect(tents.top, bridges.top);
+    expect(tents.height, bridges.height);
+    expect(tents.left, greaterThan(bridges.right));
+    // The levels line up across the row.
+    expect(
+      tester.getTopLeft(inCard('Tents', 'Hard')).dy,
+      tester.getTopLeft(inCard('Bridges', 'Hard')).dy,
+    );
+    // The date sits at the right edge of the cards.
+    expect(
+      tester.getTopRight(find.text('Wed, Nov 11')).dx,
+      lessThan(tents.right),
+    );
+    expect(
+      tester.getTopRight(find.text('Wed, Nov 11')).dx,
+      greaterThan(tents.right - 24),
+    );
+  });
+
+  testWidgets('stacks the puzzles on a narrow screen', (tester) async {
+    await pumpBoth(tester);
+
+    expect(
+      tester.getRect(card('Tents')).top,
+      greaterThan(tester.getRect(card('Bridges')).bottom),
+    );
+  });
+
+  testWidgets('stacks the puzzles where large text needs the room', (
+    tester,
+  ) async {
+    await pumpBoth(tester, size: const Size(1280, 2400), textScale: 2);
+
+    expect(
+      tester.getRect(card('Tents')).top,
+      greaterThan(tester.getRect(card('Bridges')).bottom),
+    );
+  });
+
+  testWidgets('puts the date below the name where large text needs the room', (
+    tester,
+  ) async {
+    await pumpBoth(tester, size: const Size(320, 1000), textScale: 2);
+
+    expect(
+      tester.getRect(find.text('Wed, Nov 11')).top,
+      greaterThan(tester.getRect(find.text("Today's puzzles")).bottom),
+    );
   });
 
   testWidgets('shows how far each opened game has come', (tester) async {
