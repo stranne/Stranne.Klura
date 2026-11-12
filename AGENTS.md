@@ -53,8 +53,9 @@ flutter test
 ```
 
 Flutter-free tests import `package:test`, not `flutter_test`, so they also run
-compiled to JavaScript. When generation, seeding or random code changes, run
-`dart test -p node` on those tests (`test/core` and each puzzle's logic tests).
+compiled to JavaScript and WebAssembly. When generation, seeding or random code
+changes, run `dart test -p node -c dart2js,dart2wasm` on those tests
+(`test/core` and each puzzle's logic tests).
 Do not use `flutter test --platform chrome` here; it stalls on this machine.
 For visible UI changes, run the app in Chrome and check the result.
 

@@ -19,18 +19,15 @@ flutter run -d chrome
 dart format --output=none --set-exit-if-changed .
 flutter analyze
 flutter test
-dart test -p node test/core test/puzzles/bridges/logic
+dart test -p node -c dart2js,dart2wasm test/core test/puzzles/bridges/logic
 ```
 
-The last command runs the Flutter-free tests compiled to JavaScript under
-Node.js. They must pass there too, otherwise the web would generate different
-puzzles than the VM. It needs Node.js on `PATH`.
+The last command runs the Flutter-free tests compiled to JavaScript and to
+WebAssembly under Node.js. They must pass there too, otherwise the web would
+generate different puzzles than the VM. It needs Node.js on `PATH`.
 
 `flutter test --platform chrome` currently stalls on this Windows ARM64
-machine, and `package:test` cannot yet load WebAssembly tests under Node with
-Dart 3.13. The WebAssembly output was checked by hand on 2026-11-11: it matched
-the reference values, and two years of daily Bridges puzzles of both levels
-were identical on the VM, in JavaScript and in WebAssembly.
+machine.
 
 To time Bridges generation on the VM, run `dart run tool/benchmark_bridges.dart`.
 The script's documentation shows how to run it under Node.js, and
