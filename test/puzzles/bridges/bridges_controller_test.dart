@@ -277,13 +277,11 @@ void main() {
       now += const Duration(minutes: 6);
 
       expect(games.solveTime(BridgesLevel.normal), isNull);
-      expect(games.streak, 0);
 
       solveDaily(normal);
       normal.reset();
 
       expect(games.solveTime(BridgesLevel.normal), const Duration(minutes: 6));
-      expect(games.streak, 1);
 
       final restored = gamesOf(store);
 
@@ -293,10 +291,9 @@ void main() {
       );
       expect(restored.started(BridgesLevel.normal)!.wasSolved, isTrue);
       expect(restored.started(BridgesLevel.normal)!.game.isSolved, isFalse);
-      expect(restored.streak, 1);
     });
 
-    test('counts the streak across days and clears earlier games', () {
+    test('keeps earlier solves and clears earlier games', () {
       final store = MemoryLocalStore();
       final yesterday = DateTime(2026, 11, 10);
       final first = gamesOf(store, date: yesterday);
@@ -311,16 +308,18 @@ void main() {
 
       expect(games.started(BridgesLevel.normal), isNull);
       expect(games.started(BridgesLevel.hard), isNull);
-      expect(games.streak, 1);
+      expect(games.solveTime(BridgesLevel.hard), isNull);
       expect(
         store.keys.where((key) => key.contains('2026-11-10')),
         isEmpty,
       );
-
-      solveDaily(games.open(BridgesLevel.normal));
-
-      expect(games.streak, 2);
-      expect(gamesOf(store, date: DateTime(2026, 11, 13)).streak, 0);
+      expect(
+        BridgesStorage(store).loadHistory().solveTime(
+          BridgesLevel.hard,
+          yesterday,
+        ),
+        isNotNull,
+      );
     });
 
     test('starts afresh when the save is damaged', () {
@@ -333,7 +332,7 @@ void main() {
       final games = gamesOf(store);
 
       expect(games.started(BridgesLevel.normal), isNull);
-      expect(games.streak, 0);
+      expect(games.solveTime(BridgesLevel.normal), isNull);
 
       final normal = games.open(BridgesLevel.normal);
       normal.cycleBridges(normal.game.puzzle.connections.first);

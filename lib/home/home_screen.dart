@@ -7,8 +7,7 @@ import 'package:klura/puzzles/bridges/bridges_screen.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// Lists the puzzles of [today], how far each has come and the daily
-/// streak.
+/// Lists the puzzles of [today] and how far each has come.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
     required this.today,
@@ -48,10 +47,6 @@ class HomeScreen extends StatelessWidget {
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  if (bridges.streak > 0) ...[
-                    const SizedBox(height: 12),
-                    _Streak(days: bridges.streak),
-                  ],
                   const SizedBox(height: 32),
                   _BridgesCard(
                     bridges: bridges,
@@ -63,38 +58,6 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// The number of days in a row with a solved puzzle.
-class _Streak extends StatelessWidget {
-  const _Streak({required this.days});
-
-  final int days;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Row(
-      children: [
-        Icon(
-          Icons.event_available_outlined,
-          size: 20,
-          color: theme.colorScheme.primary,
-        ),
-        const SizedBox(width: 8),
-        Text(
-          '$days-day streak',
-          semanticsLabel:
-              'Streak: $days ${days == 1 ? 'day' : 'days'} in a row with a '
-              'solved puzzle',
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
     );
   }
 }

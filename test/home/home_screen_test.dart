@@ -49,7 +49,6 @@ void main() {
     expect(find.text('Hard'), findsOneWidget);
     expect(find.text('10 × 12 · 36 islands'), findsOneWidget);
     expect(find.text('In progress'), findsNothing);
-    expect(find.textContaining('streak'), findsNothing);
   });
 
   testWidgets('shows how far each opened game has come', (tester) async {
@@ -65,7 +64,6 @@ void main() {
     await tester.pump();
 
     expect(find.text('Solved · 0:00'), findsOneWidget);
-    expect(find.text('1-day streak'), findsOneWidget);
   });
 
   testWidgets('a solved puzzle stays solved after a start over', (
@@ -86,7 +84,7 @@ void main() {
     expect(find.text('Solved'), findsOneWidget);
   });
 
-  testWidgets('shows saved progress and the streak in a new session', (
+  testWidgets('shows saved progress in a new session, without a streak', (
     tester,
   ) async {
     final store = MemoryLocalStore();
@@ -115,6 +113,7 @@ void main() {
 
     expect(find.text('Solved · 4:12'), findsOneWidget);
     expect(find.text('In progress'), findsOneWidget);
-    expect(find.text('3-day streak'), findsOneWidget);
+    // Days solved in a row are not counted, so a missed day costs nothing.
+    expect(find.textContaining('streak'), findsNothing);
   });
 }

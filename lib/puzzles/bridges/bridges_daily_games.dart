@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:klura/core/daily_streak.dart';
 import 'package:klura/puzzles/bridges/bridges_controller.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_game.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
@@ -49,12 +48,6 @@ final class BridgesDailyGames extends ChangeNotifier {
   ///
   /// It stays after a start over.
   Duration? solveTime(BridgesLevel level) => _history.solveTime(level, date);
-
-  /// The number of days in a row with at least one solved puzzle, of any
-  /// level, up to today.
-  ///
-  /// Until today's first solve, the run up to yesterday still counts.
-  int get streak => countDailyStreak(_history.solvedDays, date);
 
   /// Stops saving the games, once the app has moved on to another day.
   ///

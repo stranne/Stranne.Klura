@@ -206,7 +206,7 @@ BridgesSave? decodeBridgesSave(String text) {
 /// The puzzles solved on each day, with the time the first solve took.
 ///
 /// The history outlives the saved games, which are removed after their day,
-/// so it is what daily streaks count.
+/// so it is the record of every day played to the end.
 @immutable
 final class BridgesHistory {
   /// Creates a history without solves.
@@ -261,8 +261,7 @@ String encodeBridgesHistory(BridgesHistory history) => jsonEncode({
 /// Reads a history written by [encodeBridgesHistory], or returns `null` if
 /// [text] is damaged or of another format version.
 ///
-/// A damaged entry is skipped rather than losing the whole history, and with
-/// it a long streak.
+/// A damaged entry is skipped rather than losing the whole history.
 BridgesHistory? decodeBridgesHistory(String text) {
   if (_decodeJson(text) case {
     'format': bridgesSaveFormat,

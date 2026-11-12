@@ -82,7 +82,7 @@ Flutter. The screen that plays it lives beside it in `lib/puzzles/bridges/`.
 | File in `lib/puzzles/bridges/` | Responsibility |
 | --- | --- |
 | `bridges_controller.dart` | `BridgesController`: holds one `BridgesGame`, tells the screen about each move and times the play up to the first solve |
-| `bridges_daily_games.dart` | `BridgesDailyGames`: the day's game at each level, restored and saved as it is played, with the solves and the streak |
+| `bridges_daily_games.dart` | `BridgesDailyGames`: the day's game at each level, restored and saved as it is played, with its solves |
 | `play_timer.dart` | `PlayTimer`: counts the time played on a monotonic clock |
 | `bridges_screen.dart` | The game screen: board, status line, buttons, solved panel and how to play |
 | `bridges_board.dart` | The board widget: layout, gestures, keyboard, islands and their semantics |
@@ -214,11 +214,11 @@ For example, the Normal puzzle of 2026-11-11 and its solution:
 
 ## Playing
 
-The home screen lists today's Normal and Hard puzzles, how far each has come
-and the daily streak. Each level's puzzle is generated when first opened,
-which takes a few milliseconds, and saved on the device from then on: leaving
-a puzzle, reloading the page or closing the browser and coming back resumes
-it, as [Saving](#saving) describes. The puzzles have their own routes,
+The home screen lists today's Normal and Hard puzzles and how far each has
+come. Each level's puzzle is generated when first opened, which takes a few
+milliseconds, and saved on the device from then on: leaving a puzzle,
+reloading the page or closing the browser and coming back resumes it, as
+[Saving](#saving) describes. The puzzles have their own routes,
 `#/bridges/normal` and `#/bridges/hard`, so the browser's back button returns
 home.
 
@@ -314,17 +314,11 @@ While it is hidden, the solved panel and the home screen show no times
 either, but the time still counts, so showing it again gives the true time.
 The choice is saved on the device and applies to every puzzle.
 
-### Streak
+### No streak
 
-The home screen shows how many days in a row have at least one solved
-puzzle, of either level, for example `3-day streak`. A day counts when its
-own puzzle is solved, so the streak follows the same local dates as the seed
-keys. Until today's first solve the run up to yesterday still shows, so the
-morning never reads as a broken streak; a whole day without a solve ends it.
-Nothing shows before the first solve.
-
-One streak for both levels keeps the home screen calm, and a player can keep
-it with Normal alone, which leaves Hard a choice rather than a duty.
+The app does not count days in a row. A daily puzzle should be an
+invitation, not a duty, and a streak would make a missed day feel like a
+loss. Each day stands on its own.
 
 ### Accessibility
 
@@ -415,7 +409,7 @@ exist, a side longer than 40 cells, or islands and bridges that break the
 rules of the puzzle models. The level then starts afresh with the generated
 puzzle, and the next save replaces the damaged one, so a bad save never stops
 the app. The history is read entry by entry, so one damaged day does not cost
-a long streak. Unknown fields are ignored.
+the others. Unknown fields are ignored.
 
 A later format 2 must keep reading format 1. An older app that meets format
 2, for example from a stale cache, treats it as missing and overwrites it.
@@ -428,7 +422,8 @@ into the history. Each day has its own key, so a started game left open over
 midnight keeps writing yesterday's game and never touches today's; once it
 closes, the move to the new day removes it.
 
-The history is kept for good, since a streak can be any length. It grows by
+The history is kept for good as the record of every solved day, although
+the app shows only today's solves. It grows by
 about 20 characters per solved puzzle, some 15,000 a year with both levels
 solved every day, against the roughly 5 million a browser allows an origin.
 A solve is written to the history as it happens, after reading the history
