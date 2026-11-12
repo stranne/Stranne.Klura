@@ -315,7 +315,9 @@ is as it was, with nothing to undo.
 A quiet clock in the app bar shows the time spent on the puzzle. It counts
 only while the puzzle is on screen and the app is in front, so it pauses on
 the home screen, in another tab or app and, on a computer, while another
-window has the focus. It reads a monotonic stopwatch, so changing the
+window has the focus. It also pauses while the how-to-play sheet is open:
+the sheet covers most of the board, and reading the rules should never cost
+the player time. It reads a monotonic stopwatch, so changing the
 device's clock does not move it.
 
 The clock stops for good at the first solve, and that time is the day's

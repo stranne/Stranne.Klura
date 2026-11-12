@@ -595,6 +595,46 @@ void main() {
       expect(controller.timer.elapsed, const Duration(seconds: 3));
     });
 
+    testWidgets('pauses while how to play is open', (tester) async {
+      final controller = await pumpGame(tester, crossing);
+      now += const Duration(seconds: 4);
+
+      await tester.tap(find.byTooltip('How to play'));
+      await tester.pumpAndSettle();
+      now += const Duration(minutes: 3);
+
+      expect(find.text('How to play'), findsOneWidget);
+      expect(controller.timer.isRunning, isFalse);
+      expect(controller.timer.elapsed, const Duration(seconds: 4));
+
+      // A tap above the sheet closes it.
+      await tester.tapAt(const Offset(200, 20));
+      await tester.pumpAndSettle();
+      now += const Duration(seconds: 2);
+
+      expect(find.text('How to play'), findsNothing);
+      expect(controller.timer.isRunning, isTrue);
+      expect(controller.timer.elapsed, const Duration(seconds: 6));
+    });
+
+    testWidgets('stays paused when the app comes back to how to play', (
+      tester,
+    ) async {
+      final controller = await pumpGame(tester, crossing);
+      await tester.tap(find.byTooltip('How to play'));
+      await tester.pumpAndSettle();
+
+      tester.binding
+        ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.hidden)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      now += const Duration(minutes: 1);
+
+      expect(controller.timer.isRunning, isFalse);
+      expect(controller.timer.elapsed, Duration.zero);
+    });
+
     testWidgets('pauses when the player leaves the game', (tester) async {
       final controller = await pumpGame(tester, crossing);
       now += const Duration(seconds: 8);

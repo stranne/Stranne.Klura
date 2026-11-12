@@ -40,9 +40,10 @@ typedef HowToPlay = ({
 /// played, the sounds of moves, a status line, undo and starting over, and
 /// how to play.
 ///
-/// The game's timer runs while this screen is open and the app is in front.
-/// Each puzzle supplies its board, the problems it names in the status line
-/// and its how-to-play text.
+/// The game's timer runs while this screen is open and the app is in front,
+/// and pauses while the how-to-play sheet covers the board. Each puzzle
+/// supplies its board, the problems it names in the status line and its
+/// how-to-play text.
 class PuzzleScreen<G extends PuzzleGame> extends StatefulWidget {
   const PuzzleScreen({
     required this.title,
@@ -96,13 +97,26 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
   Timer? _noticeTimer;
   late final AppLifecycleListener _lifecycle;
 
+  /// The app's state as the platform last reported it, or `null` before it
+  /// has reported one.
+  AppLifecycleState? _appState;
+
+  /// Whether the how-to-play sheet covers the board.
+  bool _isReadingHowToPlay = false;
+
   PuzzleController<Enum, G> get _controller => widget.controller;
 
   @override
   void initState() {
     super.initState();
-    _lifecycle = AppLifecycleListener(onStateChange: _updateTiming);
-    _updateTiming(WidgetsBinding.instance.lifecycleState);
+    _appState = WidgetsBinding.instance.lifecycleState;
+    _lifecycle = AppLifecycleListener(
+      onStateChange: (state) {
+        _appState = state;
+        _updateTiming();
+      },
+    );
+    _updateTiming();
   }
 
   @override
@@ -110,7 +124,7 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.pauseTiming();
-      _updateTiming(WidgetsBinding.instance.lifecycleState);
+      _updateTiming();
     }
   }
 
@@ -122,15 +136,35 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
     super.dispose();
   }
 
-  /// Runs the timer only while the app is in front: on the web, while the
-  /// tab is visible and the window has focus. A `null` state means the
-  /// platform has not reported one yet.
-  void _updateTiming(AppLifecycleState? state) {
-    if (state == null || state == AppLifecycleState.resumed) {
+  /// Runs the timer only while the player can see the board: the app is in
+  /// front and the how-to-play sheet is closed. On the web the app is in
+  /// front while the tab is visible and the window has focus.
+  void _updateTiming() {
+    final appInFront =
+        _appState == null || _appState == AppLifecycleState.resumed;
+    if (appInFront && !_isReadingHowToPlay) {
       _controller.resumeTiming();
     } else {
       _controller.pauseTiming();
     }
+  }
+
+  /// Shows how to play, with the timer paused until the sheet closes, so
+  /// reading the rules never costs the player time.
+  Future<void> _showHowToPlay() async {
+    _isReadingHowToPlay = true;
+    _updateTiming();
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => _HowToPlaySheet(howToPlay: widget.howToPlay),
+    );
+    if (!mounted) {
+      return;
+    }
+    _isReadingHowToPlay = false;
+    _updateTiming();
   }
 
   void _showNotice(PuzzleNotice notice) {
@@ -197,7 +231,7 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
               IconButton(
                 tooltip: 'How to play',
                 icon: const Icon(Icons.help_outline),
-                onPressed: () => _showHowToPlay(context, widget.howToPlay),
+                onPressed: () => unawaited(_showHowToPlay()),
               ),
             ],
           ),
@@ -530,17 +564,6 @@ class _RevealState extends State<_Reveal> with SingleTickerProviderStateMixin {
   }
 }
 
-void _showHowToPlay(BuildContext context, HowToPlay howToPlay) {
-  unawaited(
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => _HowToPlaySheet(howToPlay: howToPlay),
-    ),
-  );
-}
-
 class _HowToPlaySheet extends StatelessWidget {
   const _HowToPlaySheet({required this.howToPlay});
 
@@ -579,8 +602,9 @@ class _HowToPlaySheet extends StatelessWidget {
             ),
             const HowToPlayPoint(
               text:
-                  'The clock counts only the time you spend on the puzzle and '
-                  'stops when you solve it. Tap it to hide it.',
+                  'The clock counts only the time you spend on the puzzle. '
+                  'It pauses while you read this and stops when you solve '
+                  'it. Tap it to hide it.',
             ),
             const HowToPlayPoint(
               text:
