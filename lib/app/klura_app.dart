@@ -9,6 +9,10 @@ import 'package:klura/puzzles/bridges/bridges_daily_games.dart';
 import 'package:klura/puzzles/bridges/bridges_screen.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_storage.dart';
+import 'package:klura/puzzles/tents/logic/tents_generator.dart';
+import 'package:klura/puzzles/tents/logic/tents_storage.dart';
+import 'package:klura/puzzles/tents/tents_daily_games.dart';
+import 'package:klura/puzzles/tents/tents_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
 class KluraApp extends StatefulWidget {
@@ -29,17 +33,38 @@ class KluraApp extends StatefulWidget {
   State<KluraApp> createState() => _KluraAppState();
 }
 
+/// The games of every puzzle on one day.
+final class _Day {
+  _Day(this.date, BridgesStorage bridgesStorage, TentsStorage tentsStorage)
+    : bridges = BridgesDailyGames(date, bridgesStorage),
+      tents = TentsDailyGames(date, tentsStorage);
+
+  final DateTime date;
+  final BridgesDailyGames bridges;
+  final TentsDailyGames tents;
+
+  void stopSaving() {
+    bridges.stopSaving();
+    tents.stopSaving();
+  }
+
+  void dispose() {
+    bridges.dispose();
+    tents.dispose();
+  }
+}
+
 class _KluraAppState extends State<KluraApp> {
   late final KluraSettings _settings = KluraSettings(widget.store);
-  late final BridgesStorage _storage = BridgesStorage(widget.store);
-  late final ValueNotifier<BridgesDailyGames> _bridges = ValueNotifier(
-    BridgesDailyGames(widget.clock(), _storage),
-  );
+  late final BridgesStorage _bridgesStorage = BridgesStorage(widget.store);
+  late final TentsStorage _tentsStorage = TentsStorage(widget.store);
+  late final ValueNotifier<_Day> _day = ValueNotifier(_newDay(widget.clock()));
   late final AppLifecycleListener _lifecycle;
   Timer? _midnightCheck;
 
-  /// The level of each open puzzle screen; normally at most one.
-  final List<BridgesLevel> _openLevels = [];
+  /// Whether each open puzzle screen shows a game the player has begun;
+  /// normally there is at most one.
+  final List<bool Function()> _openGames = [];
 
   @override
   void initState() {
@@ -52,16 +77,13 @@ class _KluraAppState extends State<KluraApp> {
   void dispose() {
     _midnightCheck?.cancel();
     _lifecycle.dispose();
-    _bridges.value.dispose();
-    _bridges.dispose();
+    _day.value.dispose();
+    _day.dispose();
     _settings.dispose();
     super.dispose();
   }
 
-  /// Whether an open puzzle screen shows a game the player has begun.
-  bool get _showsStartedGame => _openLevels.any(
-    (level) => _bridges.value.started(level)?.isStarted ?? false,
-  );
+  _Day _newDay(DateTime date) => _Day(date, _bridgesStorage, _tentsStorage);
 
   /// Moves on to the puzzles of the clock's date if it has changed, unless
   /// a started game is open.
@@ -74,12 +96,13 @@ class _KluraAppState extends State<KluraApp> {
     }
     _scheduleMidnightCheck();
     final today = widget.clock();
-    final previous = _bridges.value;
-    if (calendarDaysBetween(previous.date, today) == 0 || _showsStartedGame) {
+    final previous = _day.value;
+    if (calendarDaysBetween(previous.date, today) == 0 ||
+        _openGames.any((isStarted) => isStarted())) {
       return;
     }
     previous.stopSaving();
-    _bridges.value = BridgesDailyGames(today, _storage);
+    _day.value = _newDay(today);
     // The screens let go of the previous games in the next frame.
     WidgetsBinding.instance.addPostFrameCallback((_) => previous.dispose());
   }
@@ -93,17 +116,19 @@ class _KluraAppState extends State<KluraApp> {
     _midnightCheck = Timer(nextDay.difference(now), _followDate);
   }
 
-  /// Builds the route named in [settings]: `/` for the home screen and
-  /// `/bridges/<level>` for a daily Bridges puzzle, or `null` for any other.
+  /// Builds the route named in [settings]: `/` for the home screen,
+  /// `/bridges/<level>` for a daily Bridges puzzle and `/tents/<level>` for
+  /// a daily Tents puzzle, or `null` for any other.
   Route<void>? _route(RouteSettings settings) {
     if (settings.name == Navigator.defaultRouteName) {
       return MaterialPageRoute(
         settings: settings,
         builder: (context) => ValueListenableBuilder(
-          valueListenable: _bridges,
-          builder: (context, bridges, _) => HomeScreen(
-            today: bridges.date,
-            bridges: bridges,
+          valueListenable: _day,
+          builder: (context, day, _) => HomeScreen(
+            today: day.date,
+            bridges: day.bridges,
+            tents: day.tents,
             settings: _settings,
           ),
         ),
@@ -111,33 +136,59 @@ class _KluraAppState extends State<KluraApp> {
     }
     for (final level in BridgesLevel.values) {
       if (settings.name == bridgesRouteName(level)) {
-        return _bridgesRoute(level, settings);
+        return _puzzleRoute(
+          settings,
+          isStarted: (day) => day.bridges.started(level)?.isStarted ?? false,
+          screen: (day) {
+            final controller = day.bridges.open(level);
+            return BridgesScreen(
+              key: ObjectKey(controller),
+              controller: controller,
+              settings: _settings,
+            );
+          },
+        );
+      }
+    }
+    for (final level in TentsLevel.values) {
+      if (settings.name == tentsRouteName(level)) {
+        return _puzzleRoute(
+          settings,
+          isStarted: (day) => day.tents.started(level)?.isStarted ?? false,
+          screen: (day) {
+            final controller = day.tents.open(level);
+            return TentsScreen(
+              key: ObjectKey(controller),
+              controller: controller,
+              settings: _settings,
+            );
+          },
+        );
       }
     }
     return null;
   }
 
-  /// Shows the day's game at [level] and checks the date once the screen
-  /// has closed, in case the move to a new day waited for it.
-  Route<void> _bridgesRoute(BridgesLevel level, RouteSettings settings) {
+  /// Shows the [screen] of a day's game and checks the date once it has
+  /// closed, in case the move to a new day waited for it. While it is open,
+  /// [isStarted] tells whether the player has begun its game.
+  Route<void> _puzzleRoute(
+    RouteSettings settings, {
+    required Widget Function(_Day day) screen,
+    required bool Function(_Day day) isStarted,
+  }) {
     final route = MaterialPageRoute<void>(
       settings: settings,
       builder: (context) => ValueListenableBuilder(
-        valueListenable: _bridges,
-        builder: (context, bridges, _) {
-          final controller = bridges.open(level);
-          return BridgesScreen(
-            key: ObjectKey(controller),
-            controller: controller,
-            settings: _settings,
-          );
-        },
+        valueListenable: _day,
+        builder: (context, day, _) => screen(day),
       ),
     );
-    _openLevels.add(level);
+    bool showsStartedGame() => isStarted(_day.value);
+    _openGames.add(showsStartedGame);
     unawaited(
       route.completed.whenComplete(() {
-        _openLevels.remove(level);
+        _openGames.remove(showsStartedGame);
         _followDate();
       }),
     );

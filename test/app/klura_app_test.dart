@@ -1,9 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klura/app/klura_app.dart';
+import 'package:klura/core/grid.dart';
 import 'package:klura/core/local_store.dart';
 import 'package:klura/puzzles/bridges/bridges_screen.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_storage.dart';
+import 'package:klura/puzzles/tents/logic/tents_generator.dart';
+import 'package:klura/puzzles/tents/logic/tents_storage.dart';
+import 'package:klura/puzzles/tents/tents_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
@@ -12,6 +16,12 @@ void main() {
 
   BridgesScreen screen(WidgetTester tester) =>
       tester.widget<BridgesScreen>(find.byType(BridgesScreen));
+
+  /// The level [title] in the card of [puzzle] on the home screen.
+  Finder level(String title, {String puzzle = 'Bridges'}) => find.descendant(
+    of: find.ancestor(of: find.text(puzzle), matching: find.byType(Card)),
+    matching: find.text(title),
+  );
 
   /// Starts the app afresh on [store], as a reload of the page does.
   Future<void> launch(WidgetTester tester, LocalStore store) async {
@@ -36,7 +46,7 @@ void main() {
       KluraApp(store: MemoryLocalStore(), clock: () => today),
     );
 
-    await tester.tap(find.text('Hard'));
+    await tester.tap(level('Hard'));
     await tester.pumpAndSettle();
 
     expect(find.text('Bridges · Hard'), findsOneWidget);
@@ -49,7 +59,7 @@ void main() {
 
     expect(find.text('In progress'), findsOneWidget);
 
-    await tester.tap(find.text('Hard'));
+    await tester.tap(level('Hard'));
     await tester.pumpAndSettle();
 
     expect(screen(tester).controller, same(controller));
@@ -62,7 +72,7 @@ void main() {
     var now = today;
     final store = MemoryLocalStore();
     await tester.pumpWidget(KluraApp(store: store, clock: () => now));
-    await tester.tap(find.text('Normal'));
+    await tester.tap(level('Normal'));
     await tester.pumpAndSettle();
     final yesterday = screen(tester).controller;
     yesterday.cycleBridges(yesterday.game.puzzle.connections.first);
@@ -77,7 +87,7 @@ void main() {
     expect(find.text('In progress'), findsNothing);
     expect(BridgesStorage(store).loadGame(BridgesLevel.normal, today), isNull);
 
-    await tester.tap(find.text('Normal'));
+    await tester.tap(level('Normal'));
     await tester.pumpAndSettle();
 
     expect(
@@ -92,7 +102,7 @@ void main() {
     var now = today;
     final store = MemoryLocalStore();
     await tester.pumpWidget(KluraApp(store: store, clock: () => now));
-    await tester.tap(find.text('Hard'));
+    await tester.tap(level('Hard'));
     await tester.pumpAndSettle();
     final started = screen(tester).controller;
     started.cycleBridges(started.game.puzzle.connections.first);
@@ -118,7 +128,7 @@ void main() {
     var now = today;
     final store = MemoryLocalStore();
     await tester.pumpWidget(KluraApp(store: store, clock: () => now));
-    await tester.tap(find.text('Normal'));
+    await tester.tap(level('Normal'));
     await tester.pumpAndSettle();
 
     now = tomorrow;
@@ -157,7 +167,7 @@ void main() {
   testWidgets('restores a game after a reload', (tester) async {
     final store = MemoryLocalStore();
     await launch(tester, store);
-    await tester.tap(find.text('Normal'));
+    await tester.tap(level('Normal'));
     await tester.pumpAndSettle();
     final before = screen(tester).controller;
     before.cycleBridges(before.game.puzzle.connections.first);
@@ -166,7 +176,7 @@ void main() {
 
     expect(find.text('In progress'), findsOneWidget);
 
-    await tester.tap(find.text('Normal'));
+    await tester.tap(level('Normal'));
     await tester.pumpAndSettle();
     final after = screen(tester).controller;
 
@@ -187,7 +197,7 @@ void main() {
 
     expect(find.text('In progress'), findsNothing);
 
-    await tester.tap(find.text('Normal'));
+    await tester.tap(level('Normal'));
     await tester.pumpAndSettle();
 
     expect(find.text('Bridges · Normal'), findsOneWidget);
@@ -196,5 +206,41 @@ void main() {
       BridgesStorage(store).loadGame(BridgesLevel.normal, today),
       isNotNull,
     );
+  });
+
+  testWidgets('opens Tents and keeps a started game until it closes', (
+    tester,
+  ) async {
+    var now = today;
+    final store = MemoryLocalStore();
+    tester.view.physicalSize = const Size(400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(KluraApp(store: store, clock: () => now));
+    await tester.tap(level('Hard', puzzle: 'Tents'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tents · Hard'), findsOneWidget);
+    final started = tester
+        .widget<TentsScreen>(find.byType(TentsScreen))
+        .controller;
+    expect(started.seedKey, 'tents-hard:v1:2026-11-11');
+    started.fillGrass([started.game.puzzle.trees.first.step(Direction.down)]);
+
+    now = tomorrow;
+    leaveAndReturn(tester);
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<TentsScreen>(find.byType(TentsScreen)).controller,
+      same(started),
+    );
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Thursday, November 12, 2026'), findsOneWidget);
+    expect(find.text('In progress'), findsNothing);
+    expect(TentsStorage(store).loadGame(TentsLevel.hard, today), isNull);
   });
 }

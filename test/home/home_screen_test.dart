@@ -1,32 +1,60 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klura/app/klura_settings.dart';
+import 'package:klura/core/grid.dart';
 import 'package:klura/core/local_store.dart';
 import 'package:klura/home/home_screen.dart';
 import 'package:klura/puzzles/bridges/bridges_controller.dart';
 import 'package:klura/puzzles/bridges/bridges_daily_games.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_storage.dart';
+import 'package:klura/puzzles/tents/logic/tents_generator.dart';
+import 'package:klura/puzzles/tents/logic/tents_storage.dart';
+import 'package:klura/puzzles/tents/tents_daily_games.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
   final today = DateTime(2026, 11, 11);
 
-  Future<(BridgesDailyGames, KluraSettings)> pumpHome(
+  Future<(BridgesDailyGames, TentsDailyGames, KluraSettings)> pumpBoth(
     WidgetTester tester, {
     LocalStore? store,
   }) async {
     final storage = store ?? MemoryLocalStore();
     final bridges = BridgesDailyGames(today, BridgesStorage(storage));
     addTearDown(bridges.dispose);
+    final tents = TentsDailyGames(today, TentsStorage(storage));
+    addTearDown(tents.dispose);
     final settings = KluraSettings(storage);
     addTearDown(settings.dispose);
+    tester.view.physicalSize = const Size(400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
-        home: HomeScreen(today: today, bridges: bridges, settings: settings),
+        home: HomeScreen(
+          today: today,
+          bridges: bridges,
+          tents: tents,
+          settings: settings,
+        ),
       ),
     );
+    return (bridges, tents, settings);
+  }
+
+  Future<(BridgesDailyGames, KluraSettings)> pumpHome(
+    WidgetTester tester, {
+    LocalStore? store,
+  }) async {
+    final (bridges, _, settings) = await pumpBoth(tester, store: store);
     return (bridges, settings);
   }
+
+  /// The text [text] in the card of [puzzle].
+  Finder inCard(String puzzle, String text) => find.descendant(
+    of: find.ancestor(of: find.text(puzzle), matching: find.byType(Card)),
+    matching: find.text(text),
+  );
 
   void solve(BridgesController game) {
     final solution = generateDailyBridges(game.level, today).solution;
@@ -38,16 +66,19 @@ void main() {
     }
   }
 
-  testWidgets('shows the date and both Bridges levels', (tester) async {
+  testWidgets('shows the date and both levels of each puzzle', (tester) async {
     await pumpHome(tester);
 
     expect(find.text('Klura'), findsOneWidget);
     expect(find.text('Wednesday, November 11, 2026'), findsOneWidget);
-    expect(find.text('Bridges'), findsOneWidget);
-    expect(find.text('Normal'), findsOneWidget);
-    expect(find.text('10 × 10 · 30 islands'), findsOneWidget);
-    expect(find.text('Hard'), findsOneWidget);
-    expect(find.text('10 × 12 · 36 islands'), findsOneWidget);
+    expect(inCard('Bridges', 'Normal'), findsOneWidget);
+    expect(inCard('Bridges', '10 × 10 · 30 islands'), findsOneWidget);
+    expect(inCard('Bridges', 'Hard'), findsOneWidget);
+    expect(inCard('Bridges', '10 × 12 · 36 islands'), findsOneWidget);
+    expect(inCard('Tents', 'Normal'), findsOneWidget);
+    expect(inCard('Tents', '8 × 8 · 12 tents'), findsOneWidget);
+    expect(inCard('Tents', 'Hard'), findsOneWidget);
+    expect(inCard('Tents', '10 × 10 · 20 tents'), findsOneWidget);
     expect(find.text('In progress'), findsNothing);
   });
 
@@ -115,5 +146,29 @@ void main() {
     expect(find.text('In progress'), findsOneWidget);
     // Days solved in a row are not counted, so a missed day costs nothing.
     expect(find.textContaining('streak'), findsNothing);
+  });
+
+  testWidgets('shows how far each Tents game has come', (tester) async {
+    final (_, tents, _) = await pumpBoth(tester);
+
+    final normal = tents.open(TentsLevel.normal);
+    normal.cycleMark(normal.game.puzzle.trees.first.step(Direction.down));
+    await tester.pump();
+
+    expect(inCard('Tents', 'In progress'), findsOneWidget);
+    expect(inCard('Bridges', 'In progress'), findsNothing);
+
+    final hard = tents.open(TentsLevel.hard);
+    for (final tent in generateDailyTents(
+      TentsLevel.hard,
+      today,
+    ).solution.tents) {
+      hard
+        ..cycleMark(tent)
+        ..cycleMark(tent);
+    }
+    await tester.pump();
+
+    expect(inCard('Tents', 'Solved · 0:00'), findsOneWidget);
   });
 }
