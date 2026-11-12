@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:klura/app/klura_settings.dart';
+import 'package:klura/core/local_store.dart';
 import 'package:klura/puzzles/bridges/bridges_board.dart';
 import 'package:klura/puzzles/bridges/bridges_controller.dart';
 import 'package:klura/puzzles/bridges/bridges_screen.dart';
@@ -31,18 +33,27 @@ void main() {
   final top = Connection(const Position(0, 0), const Position(2, 0));
   final left = Connection(const Position(0, 0), const Position(0, 2));
 
+  var now = Duration.zero;
+  late LocalStore store;
+  late KluraSettings settings;
+
   Future<BridgesController> pumpGame(
     WidgetTester tester,
     String board, {
     bool disableAnimations = false,
   }) async {
     final (:puzzle, :arrangement) = parseBridges(board);
+    now = Duration.zero;
     final controller = BridgesController(
       level: BridgesLevel.normal,
       seedKey: 'test',
       game: BridgesGame(puzzle, arrangement),
+      clock: () => now,
     );
     addTearDown(controller.dispose);
+    store = MemoryLocalStore();
+    settings = KluraSettings(store);
+    addTearDown(settings.dispose);
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -54,7 +65,7 @@ void main() {
             size: const Size(400, 800),
             disableAnimations: disableAnimations,
           ),
-          child: BridgesScreen(controller: controller),
+          child: BridgesScreen(controller: controller, settings: settings),
         ),
       ),
     );
@@ -385,5 +396,101 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  group('timer', () {
+    testWidgets('shows the time played and counts while on screen', (
+      tester,
+    ) async {
+      final controller = await pumpGame(tester, crossing);
+
+      expect(controller.timer.isRunning, isTrue);
+      expect(find.text('0:00'), findsOneWidget);
+
+      now += const Duration(minutes: 1, seconds: 5);
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.text('1:05'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Time played, 1 minute 5 seconds'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('pauses while the app is hidden', (tester) async {
+      final controller = await pumpGame(tester, crossing);
+
+      tester.binding
+        ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      now += const Duration(minutes: 10);
+
+      expect(controller.timer.isRunning, isFalse);
+
+      tester.binding
+        ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      now += const Duration(seconds: 3);
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(controller.timer.isRunning, isTrue);
+      expect(controller.timer.elapsed, const Duration(seconds: 3));
+    });
+
+    testWidgets('pauses when the player leaves the game', (tester) async {
+      final controller = await pumpGame(tester, crossing);
+      now += const Duration(seconds: 8);
+
+      await tester.pumpWidget(const SizedBox());
+      now += const Duration(minutes: 1);
+
+      expect(controller.timer.isRunning, isFalse);
+      expect(controller.timer.elapsed, const Duration(seconds: 8));
+    });
+
+    testWidgets('hides on a tap and comes back from its icon', (tester) async {
+      final controller = await pumpGame(tester, crossing);
+      now += const Duration(seconds: 12);
+      await tester.pump(const Duration(seconds: 1));
+
+      await tester.tap(find.text('0:12'));
+      await tester.pump();
+
+      expect(find.text('0:12'), findsNothing);
+      expect(settings.showTimer, isFalse);
+      expect(KluraSettings(store).showTimer, isFalse);
+      expect(controller.timer.isRunning, isTrue);
+
+      now += const Duration(seconds: 30);
+      await tester.tap(find.byTooltip('Show timer'));
+      await tester.pump();
+
+      expect(find.text('0:42'), findsOneWidget);
+      expect(settings.showTimer, isTrue);
+    });
+
+    testWidgets('the solved panel shows the time of the first solve', (
+      tester,
+    ) async {
+      final controller = await pumpGame(tester, small, disableAnimations: true);
+      now += const Duration(minutes: 2, seconds: 30);
+      controller
+        ..cycleBridges(top)
+        ..cycleBridges(top)
+        ..cycleBridges(left);
+      now += const Duration(minutes: 1);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Solved').hitTestable(), findsOneWidget);
+      expect(find.text('  ·  2:30'), findsOneWidget);
+      expect(find.text('2:30'), findsOneWidget);
+      expect(controller.timer.isRunning, isFalse);
+
+      settings.showTimer = false;
+      await tester.pumpAndSettle();
+
+      expect(find.text('  ·  All 3 islands are linked'), findsOneWidget);
+      expect(find.textContaining('2:30'), findsNothing);
+    });
   });
 }

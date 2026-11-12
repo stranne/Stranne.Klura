@@ -2,11 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:klura/app/klura_settings.dart';
+import 'package:klura/core/play_time.dart';
 import 'package:klura/puzzles/bridges/bridges_board.dart';
 import 'package:klura/puzzles/bridges/bridges_controller.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_game.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_rules.dart';
+import 'package:klura/puzzles/bridges/play_timer.dart';
 
 /// The route name of the daily puzzle at [level], such as `/bridges/normal`.
 String bridgesRouteName(BridgesLevel level) => '/bridges/${level.name}';
@@ -17,12 +20,21 @@ String bridgesLevelTitle(BridgesLevel level) => switch (level) {
   BridgesLevel.hard => 'Hard',
 };
 
-/// Plays one game of Bridges: the board, how far the player has come, undo
-/// and starting over.
+/// Plays one game of Bridges: the board, how far the player has come, the
+/// time played, undo and starting over.
+///
+/// The game's timer runs while this screen is open and the app is in front.
 class BridgesScreen extends StatefulWidget {
-  const BridgesScreen({required this.controller, super.key});
+  const BridgesScreen({
+    required this.controller,
+    required this.settings,
+    super.key,
+  });
 
   final BridgesController controller;
+
+  /// Whether to show the time played.
+  final KluraSettings settings;
 
   @override
   State<BridgesScreen> createState() => _BridgesScreenState();
@@ -37,13 +49,43 @@ typedef _Notice = ({String text, bool isProblem});
 class _BridgesScreenState extends State<BridgesScreen> {
   _Notice? _notice;
   Timer? _noticeTimer;
+  late final AppLifecycleListener _lifecycle;
 
   BridgesController get _controller => widget.controller;
 
   @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(onStateChange: _updateTiming);
+    _updateTiming(WidgetsBinding.instance.lifecycleState);
+  }
+
+  @override
+  void didUpdateWidget(BridgesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.pauseTiming();
+      _updateTiming(WidgetsBinding.instance.lifecycleState);
+    }
+  }
+
+  @override
   void dispose() {
     _noticeTimer?.cancel();
+    _lifecycle.dispose();
+    _controller.pauseTiming();
     super.dispose();
+  }
+
+  /// Runs the timer only while the app is in front: on the web, while the
+  /// tab is visible and the window has focus. A `null` state means the
+  /// platform has not reported one yet.
+  void _updateTiming(AppLifecycleState? state) {
+    if (state == null || state == AppLifecycleState.resumed) {
+      _controller.resumeTiming();
+    } else {
+      _controller.pauseTiming();
+    }
   }
 
   void _showNotice(_Notice notice) {
@@ -92,6 +134,7 @@ class _BridgesScreenState extends State<BridgesScreen> {
           appBar: AppBar(
             title: Text('Bridges · ${bridgesLevelTitle(_controller.level)}'),
             actions: [
+              _PlayClock(controller: _controller, settings: widget.settings),
               IconButton(
                 tooltip: 'How to play',
                 icon: const Icon(Icons.help_outline),
@@ -117,10 +160,17 @@ class _BridgesScreenState extends State<BridgesScreen> {
                         ),
                       ),
                     ),
-                    ValueListenableBuilder(
-                      valueListenable: _controller,
-                      builder: (context, game, _) => _BottomPanel(
-                        game: game,
+                    ListenableBuilder(
+                      listenable: Listenable.merge([
+                        _controller,
+                        widget.settings,
+                      ]),
+                      builder: (context, _) => _BottomPanel(
+                        game: _controller.game,
+                        solveTime:
+                            widget.settings.showTimer && _controller.wasSolved
+                            ? _controller.timer.elapsed
+                            : null,
                         notice: _notice,
                         onUndo: _undo,
                         onReset: _reset,
@@ -146,6 +196,7 @@ class _BridgesScreenState extends State<BridgesScreen> {
 class _BottomPanel extends StatelessWidget {
   const _BottomPanel({
     required this.game,
+    required this.solveTime,
     required this.notice,
     required this.onUndo,
     required this.onReset,
@@ -153,6 +204,10 @@ class _BottomPanel extends StatelessWidget {
   });
 
   final BridgesGame game;
+
+  /// The time the first solve took, or `null` if the timer is hidden.
+  final Duration? solveTime;
+
   final _Notice? notice;
   final VoidCallback onUndo;
   final VoidCallback onReset;
@@ -197,6 +252,7 @@ class _BottomPanel extends StatelessWidget {
             delay: const Duration(milliseconds: 700),
             child: _SolvedPanel(
               islandCount: game.puzzle.islands.length,
+              solveTime: solveTime,
               onReset: onReset,
               onDone: onDone,
             ),
@@ -291,17 +347,25 @@ _Notice _describe(BridgesCheck check, int islandCount) {
 class _SolvedPanel extends StatelessWidget {
   const _SolvedPanel({
     required this.islandCount,
+    required this.solveTime,
     required this.onReset,
     required this.onDone,
   });
 
   final int islandCount;
+
+  /// The time the first solve took, or `null` if the timer is hidden.
+  final Duration? solveTime;
+
   final VoidCallback onReset;
   final VoidCallback onDone;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final detailStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -315,13 +379,20 @@ class _SolvedPanel extends StatelessWidget {
               const SizedBox(width: 8),
               Text('Solved', style: theme.textTheme.titleMedium),
               Flexible(
-                child: Text(
-                  '  ·  All $islandCount islands are linked',
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                child: switch (solveTime) {
+                  final time? => Text(
+                    '  ·  ${formatPlayTime(time)}',
+                    semanticsLabel: 'in ${describePlayTime(time)}',
+                    style: detailStyle?.copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
                   ),
-                ),
+                  null => Text(
+                    '  ·  All $islandCount islands are linked',
+                    overflow: TextOverflow.ellipsis,
+                    style: detailStyle,
+                  ),
+                },
               ),
             ],
           ),
@@ -495,6 +566,21 @@ class _HowToPlay extends StatelessWidget {
                   'With a keyboard, the arrow keys move between islands, '
                   'Shift and an arrow builds a bridge, and Ctrl and Z undoes.',
             ),
+            const SizedBox(height: 16),
+            Text('Saving and time', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            const _Point(
+              marker: '•',
+              text:
+                  'Your bridges are saved on this device as you play, so you '
+                  'can leave and pick up where you were.',
+            ),
+            const _Point(
+              marker: '•',
+              text:
+                  'The clock counts only the time you spend on the puzzle and '
+                  'stops when you solve it. Tap it to hide it.',
+            ),
           ],
         ),
       ),
@@ -529,6 +615,112 @@ class _Point extends StatelessWidget {
           ),
           Expanded(child: Text(text, style: theme.textTheme.bodyLarge)),
         ],
+      ),
+    );
+  }
+}
+
+/// The time played, quiet in the app bar. Tapping it hides it behind a
+/// small icon, which shows it again.
+///
+/// After the first solve it shows that solve's time with a check mark.
+class _PlayClock extends StatefulWidget {
+  const _PlayClock({required this.controller, required this.settings});
+
+  final BridgesController controller;
+  final KluraSettings settings;
+
+  @override
+  State<_PlayClock> createState() => _PlayClockState();
+}
+
+class _PlayClockState extends State<_PlayClock> {
+  Timer? _tick;
+
+  PlayTimer get _timer => widget.controller.timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer.addListener(_onTimerChanged);
+    widget.settings.addListener(_onTimerChanged);
+    _scheduleTick();
+  }
+
+  @override
+  void didUpdateWidget(_PlayClock oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.timer.removeListener(_onTimerChanged);
+      _timer.addListener(_onTimerChanged);
+    }
+    if (oldWidget.settings != widget.settings) {
+      oldWidget.settings.removeListener(_onTimerChanged);
+      widget.settings.addListener(_onTimerChanged);
+    }
+    _scheduleTick();
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    _timer.removeListener(_onTimerChanged);
+    widget.settings.removeListener(_onTimerChanged);
+    super.dispose();
+  }
+
+  void _onTimerChanged() {
+    setState(() {});
+    _scheduleTick();
+  }
+
+  /// Rebuilds when the shown time next turns to a new second, while the
+  /// timer runs and is shown.
+  void _scheduleTick() {
+    _tick?.cancel();
+    _tick = null;
+    if (!_timer.isRunning || !widget.settings.showTimer) {
+      return;
+    }
+    const second = Duration.microsecondsPerSecond;
+    final intoSecond = _timer.elapsed.inMicroseconds % second;
+    _tick = Timer(Duration(microseconds: second - intoSecond), () {
+      setState(() {});
+      _scheduleTick();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final settings = widget.settings;
+
+    if (!settings.showTimer) {
+      return IconButton(
+        tooltip: 'Show timer',
+        icon: const Icon(Icons.timer_outlined),
+        onPressed: () => settings.showTimer = true,
+      );
+    }
+
+    final elapsed = _timer.elapsed;
+    final solved = widget.controller.wasSolved;
+    final style = theme.textTheme.titleMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    return Tooltip(
+      message: 'Hide timer',
+      child: TextButton.icon(
+        onPressed: () => settings.showTimer = false,
+        icon: solved ? const Icon(Icons.check, size: 18) : null,
+        label: Text(
+          formatPlayTime(elapsed),
+          semanticsLabel: solved
+              ? 'Solved in ${describePlayTime(elapsed)}'
+              : 'Time played, ${describePlayTime(elapsed)}',
+          style: style,
+        ),
       ),
     );
   }
