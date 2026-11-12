@@ -63,10 +63,10 @@ dart run tool/generate_icons.dart
 
 | Path | Responsibility |
 | --- | --- |
-| `lib/app/` | App widget, routes and theme |
-| `lib/home/` | Home screen listing today's puzzles and their progress |
-| `lib/core/` | Flutter-free helpers shared by puzzles: seeded random, daily seed keys |
-| `lib/puzzles/<name>/` | One folder per puzzle type, starting with Bridges: its screen, board and controller, with the Flutter-free rules, solver, generator and game state in `logic/` |
+| `lib/app/` | App widget, routes, theme, settings and the browser's local storage |
+| `lib/home/` | Home screen listing today's puzzles, their progress and the daily streak |
+| `lib/core/` | Flutter-free helpers shared by puzzles: seeded random, daily seed keys, calendar dates, streaks, play times and the `LocalStore` interface |
+| `lib/puzzles/<name>/` | One folder per puzzle type, starting with Bridges: its screen, board, controller and timer, with the Flutter-free rules, solver, generator, game state and save format in `logic/` |
 | `web/` | Web shell: loading screen, manifest and generated icons |
 | `design/icon/` | SVG sources for the icons |
 | `tool/` | Development scripts: the icon generator and the Bridges benchmark |

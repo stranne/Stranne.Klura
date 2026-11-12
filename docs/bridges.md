@@ -75,12 +75,15 @@ Flutter. The screen that plays it lives beside it in `lib/puzzles/bridges/`.
 | `bridges_generator.dart` | `BridgesLevel`, `BridgesConfig`, `generateBridges` and the daily entry point |
 | `bridges_text.dart` | `formatBridges` and `parseBridges`: a text notation for tests |
 | `bridges_game.dart` | `BridgesGame`: a game in progress, with its moves, undo history and rules check |
+| `bridges_save.dart` | `BridgesSave` and `BridgesHistory` and their JSON save format |
+| `bridges_storage.dart` | `BridgesStorage`: keeps saved games and the history in a `LocalStore` and clears away earlier days |
 | `union_find.dart` | Disjoint groups of islands, shared by the rules check and the solver |
 
 | File in `lib/puzzles/bridges/` | Responsibility |
 | --- | --- |
-| `bridges_controller.dart` | `BridgesController`: holds one `BridgesGame` and tells the screen about each move |
-| `bridges_daily_games.dart` | `BridgesDailyGames`: the day's game at each level, kept for the session |
+| `bridges_controller.dart` | `BridgesController`: holds one `BridgesGame`, tells the screen about each move and times the play up to the first solve |
+| `bridges_daily_games.dart` | `BridgesDailyGames`: the day's game at each level, restored and saved as it is played, with the solves and the streak |
+| `play_timer.dart` | `PlayTimer`: counts the time played on a monotonic clock |
 | `bridges_screen.dart` | The game screen: board, status line, buttons, solved panel and how to play |
 | `bridges_board.dart` | The board widget: layout, gestures, keyboard, islands and their semantics |
 | `bridges_board_painter.dart` | Paints grid dots, bridges, previews and the marks for loops, blocked moves and the solve |
@@ -211,13 +214,15 @@ For example, the Normal puzzle of 2026-11-11 and its solution:
 
 ## Playing
 
-The home screen lists today's Normal and Hard puzzles. The app reads the date
-once when it starts, so a new day's puzzles appear on the next launch and an
-open game is never replaced. Each level's puzzle is generated when first
-opened, which takes a few milliseconds, and the game stays in memory for the
-session: leaving a puzzle and coming back resumes it. The puzzles have their
-own routes, `#/bridges/normal` and `#/bridges/hard`, so the browser's back
-button returns home. Progress does not yet survive a reload.
+The home screen lists today's Normal and Hard puzzles, how far each has come
+and the daily streak. The app reads the date once when it starts, so a new
+day's puzzles appear on the next launch and an open game is never replaced.
+Each level's puzzle is generated when first opened, which takes a few
+milliseconds, and saved on the device from then on: leaving a puzzle,
+reloading the page or closing the browser and coming back resumes it, as
+[Saving](#saving) describes. The puzzles have their own routes,
+`#/bridges/normal` and `#/bridges/hard`, so the browser's back button returns
+home.
 
 ### Building bridges
 
@@ -273,7 +278,41 @@ bridge gives a lighter tick.
 
 Undo has no limit. Start over clears every bridge as a single move, so Undo
 brings them back, and it needs no confirmation dialog. After a solve, Undo is
-hidden and Start over remains.
+hidden and Start over remains. Starting over after a solve clears the board
+for a replay; Undo brings the solved board back, and the day stays solved
+either way. The undo history lasts for the session: after a reload the board
+is as it was, with nothing to undo.
+
+### Timer
+
+A quiet clock in the app bar shows the time spent on the puzzle. It counts
+only while the puzzle is on screen and the app is in front, so it pauses on
+the home screen, in another tab or app and, on a computer, while another
+window has the focus. It reads a monotonic stopwatch, so changing the
+device's clock does not move it.
+
+The clock stops for good at the first solve, and that time is the day's
+result: the solved panel says `Solved · 4:12`, the home screen repeats it,
+and a replay after Start over leaves it alone, with a check mark beside the
+clock. Timing only the first solve gives each day one time, the one that
+reflects the first look at the puzzle.
+
+Tapping the clock hides it behind a small timer icon, which shows it again.
+While it is hidden, the solved panel and the home screen show no times
+either, but the time still counts, so showing it again gives the true time.
+The choice is saved on the device and applies to every puzzle.
+
+### Streak
+
+The home screen shows how many days in a row have at least one solved
+puzzle, of either level, for example `3-day streak`. A day counts when its
+own puzzle is solved, so the streak follows the same local dates as the seed
+keys. Until today's first solve the run up to yesterday still shows, so the
+morning never reads as a broken streak; a whole day without a solve ends it.
+Nothing shows before the first solve.
+
+One streak for both levels keeps the home screen calm, and a player can keep
+it with Normal alone, which leaves Hard a choice rather than a duty.
 
 ### Accessibility
 
@@ -285,13 +324,113 @@ states differ in shape, loops have a band, and the status line names every
 problem in words. The colors are the theme's own pairs in light and dark
 mode.
 
-### Still to come
+## Saving
 
-- Saving: progress saves automatically and opening the same puzzle again
-  restores it. A saved game needs the level, the seed key, the puzzle itself
-  and the arrangement; whether it is solved follows from those. The undo
-  history and the session date could be saved too.
-- An optional quiet timer.
+Progress saves automatically in the browser's local storage, with no button
+and no account: on every move, and whenever the timer starts or pauses,
+which includes hiding, reloading or closing the page. Another browser or
+device starts afresh.
+
+`KluraApp` receives a `LocalStore`, a small interface in `lib/core/` that
+reads, writes, removes and lists text values. On the web, `main` opens the
+browser's storage through `dart:js_interop`, without a package, and falls
+back to memory for the session when the browser blocks it. Tests use
+`MemoryLocalStore`. A write that fails, for example on full storage, is lost
+quietly and the game goes on.
+
+GitHub Pages serves all of an owner's projects from one origin, which shares
+one storage, so every key starts with `klura.`:
+
+| Key | Value |
+| --- | --- |
+| `klura.bridges.<level>.<date>` | The game at that level on that day, for example `klura.bridges.normal.2026-11-12` |
+| `klura.bridges.history` | The days each level was solved, with the time the first solve took |
+| `klura.showTimer` | `false` once the player has hidden the timer |
+
+### Save format
+
+Games and the history are JSON objects with a `format` number, now 1,
+written and read by `bridges_save.dart`. A game:
+
+```json
+{
+  "format": 1,
+  "level": "normal",
+  "date": "2026-11-12",
+  "seedKey": "bridges-normal:v2:2026-11-12",
+  "puzzle": {
+    "width": 3,
+    "height": 3,
+    "islands": [[0, 0, 3], [2, 0, 2], [0, 2, 1]]
+  },
+  "bridges": [[0, 0, 2, 0, 2]],
+  "playedMs": 252345,
+  "solved": false
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `level`, `date` | The level and the local calendar date of the puzzle |
+| `seedKey` | The key the puzzle was generated from, as a record only |
+| `puzzle` | The grid size and each island as column, row and number, in reading order |
+| `bridges` | Each connection with bridges: the column and row of both ends in reading order, then 1 or 2 |
+| `playedMs` | The time played in milliseconds, which stops at the first solve |
+| `solved` | Whether the game was ever solved; a start over clears the board but not this |
+
+The puzzle itself is saved, so a later generator version never changes a
+game in progress, and the key uses only the level and the date, so a new
+version still finds today's game. Whether the game is solved now follows from
+the puzzle and the bridges.
+
+The history lists the first solve of each level and day:
+
+```json
+{
+  "format": 1,
+  "solved": {
+    "normal": {"2026-11-10": 312000, "2026-11-12": 252345},
+    "hard": {"2026-11-12": 731000}
+  }
+}
+```
+
+### Damaged saves
+
+A game that cannot be read counts as missing: text that is not JSON, a
+missing or mistyped field, another format version, a date that does not
+exist, a side longer than 40 cells, or islands and bridges that break the
+rules of the puzzle models. The level then starts afresh with the generated
+puzzle, and the next save replaces the damaged one, so a bad save never stops
+the app. The history is read entry by entry, so one damaged day does not cost
+a long streak. Unknown fields are ignored.
+
+A later format 2 must keep reading format 1. An older app that meets format
+2, for example from a stale cache, treats it as missing and overwrites it.
+
+### Keeping and clearing
+
+Only today's games can be played, so at start the app removes the games of
+earlier days, after copying any solve into the history. A game therefore
+lives until the first launch on a later day. Each day has its own key, so a
+tab left open over midnight keeps writing yesterday's game and never touches
+today's.
+
+The history is kept for good, since a streak can be any length. It grows by
+about 20 characters per solved puzzle, some 15,000 a year with both levels
+solved every day, against the roughly 5 million a browser allows an origin.
+A solve is written to the history as it happens, after reading the history
+again so that two tabs keep each other's days, and the start-up clearing
+repairs a write that was lost.
+
+The undo history is not saved. Undo serves the last few moves, and saving it
+would make every save several times larger for little gain; the format
+version leaves room to add it.
+
+## Still to come
+
 - No accounts, ads or hints in version 1.
+- The clock keeps running while a player walks away from a visible screen.
+  An idle limit could pause it.
 - The interaction has been tried in Chrome with phone emulation. It still
   needs a session on a real phone.
