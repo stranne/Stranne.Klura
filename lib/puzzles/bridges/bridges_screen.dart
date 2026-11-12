@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:klura/app/klura_settings.dart';
 import 'package:klura/core/play_time.dart';
@@ -10,6 +9,7 @@ import 'package:klura/puzzles/bridges/logic/bridges_game.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_rules.dart';
 import 'package:klura/puzzles/bridges/play_timer.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The route name of the daily puzzle at [level], such as `/bridges/normal`.
 String bridgesRouteName(BridgesLevel level) => '/bridges/${level.name}';

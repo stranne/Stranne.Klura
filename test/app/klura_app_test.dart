@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klura/app/klura_app.dart';
 import 'package:klura/core/local_store.dart';
 import 'package:klura/puzzles/bridges/bridges_screen.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_storage.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   final today = DateTime(2026, 11, 11);

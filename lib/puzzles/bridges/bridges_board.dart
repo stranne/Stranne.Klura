@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:klura/puzzles/bridges/bridges_board_geometry.dart';
 import 'package:klura/puzzles/bridges/bridges_board_painter.dart';
@@ -11,6 +10,7 @@ import 'package:klura/puzzles/bridges/logic/bridges_game.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_puzzle.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_rules.dart';
 import 'package:klura/puzzles/bridges/logic/geometry.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The playing board: islands, bridges and the gestures and keys that build
 /// them.

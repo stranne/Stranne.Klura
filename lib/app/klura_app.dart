@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:klura/app/klura_settings.dart';
 import 'package:klura/app/klura_theme.dart';
 import 'package:klura/core/local_store.dart';
@@ -7,6 +6,7 @@ import 'package:klura/puzzles/bridges/bridges_daily_games.dart';
 import 'package:klura/puzzles/bridges/bridges_screen.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_storage.dart';
+import 'package:material_ui/material_ui.dart';
 
 class KluraApp extends StatefulWidget {
   const KluraApp({required this.today, required this.store, super.key});

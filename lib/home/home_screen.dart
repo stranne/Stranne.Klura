@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:klura/app/klura_settings.dart';
 import 'package:klura/core/play_time.dart';
 import 'package:klura/puzzles/bridges/bridges_daily_games.dart';
 import 'package:klura/puzzles/bridges/bridges_screen.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Lists the puzzles of [today], how far each has come and the daily
 /// streak.

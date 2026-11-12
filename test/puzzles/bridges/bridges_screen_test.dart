@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klura/app/klura_settings.dart';
@@ -11,6 +10,7 @@ import 'package:klura/puzzles/bridges/logic/bridges_game.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_text.dart';
 import 'package:klura/puzzles/bridges/logic/geometry.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   // A row and a column whose bridges would cross in the middle.

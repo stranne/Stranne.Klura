@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klura/app/klura_theme.dart';
+import 'package:material_ui/material_ui.dart';
 
 // The web shell paints before Flutter has loaded. Its colors must match the
 // theme, otherwise the hand-over from the loading screen to the app flashes.
