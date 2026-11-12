@@ -1,3 +1,5 @@
+import 'package:klura/core/calendar_date.dart';
+
 /// Builds the seed key for a puzzle of the day, for example
 /// `bridges:v1:2026-11-11`.
 ///
@@ -11,9 +13,4 @@ String dailySeedKey({
   required String puzzleId,
   required int generatorVersion,
   required DateTime date,
-}) {
-  final year = date.year.toString().padLeft(4, '0');
-  final month = date.month.toString().padLeft(2, '0');
-  final day = date.day.toString().padLeft(2, '0');
-  return '$puzzleId:v$generatorVersion:$year-$month-$day';
-}
+}) => '$puzzleId:v$generatorVersion:${formatCalendarDate(date)}';
