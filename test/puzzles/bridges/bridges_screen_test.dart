@@ -109,7 +109,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.game.arrangement[across], 1);
-    expect(find.text('2 of 4 islands complete'), findsOneWidget);
   });
 
   testWidgets('a short drag that returns to its island builds nothing', (
@@ -345,11 +344,12 @@ void main() {
     );
     expect(
       find.bySemanticsLabel(
-        'Bridges board, 3 columns by 3 rows, 3 islands',
+        'Bridges board, 3 columns by 3 rows, 3 islands, 0 complete',
       ),
       findsOneWidget,
     );
-    expect(find.text('0 of 3 islands complete'), findsOneWidget);
+    // The filled islands show progress, so it is not written out as well.
+    expect(find.textContaining('complete'), findsNothing);
 
     controller.cycleBridges(top);
     await tester.pumpAndSettle();
@@ -358,6 +358,12 @@ void main() {
       find.bySemanticsLabel(
         'Island 2, row 1, column 3. complete. 2 to the '
         'left',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        'Bridges board, 3 columns by 3 rows, 3 islands, 1 complete',
       ),
       findsOneWidget,
     );

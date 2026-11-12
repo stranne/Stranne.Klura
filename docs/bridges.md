@@ -276,10 +276,10 @@ bridge gives a lighter tick.
   with the primary color. An overfull island gets a red ring, a red number
   and a soft red halo. Fill, outline and halo differ as well as color.
 - Bridges on a loop turn red over a soft red band.
-- The status line counts complete islands, for example `12 of 30 islands
-  complete`. When something is wrong it names it in words instead: a loop,
-  islands with too many bridges, or every number met while the islands are
-  not all linked.
+- The status line stays empty while nothing is wrong, since the filled
+  islands already show how far the board has come. When something is wrong
+  it names it in words: a loop, islands with too many bridges, or every
+  number met while the islands are not all linked.
 - When a move solves the puzzle, light spreads along the bridges from that
   move, each island lifting once as it passes, and after about a second a
   panel says `Solved` with buttons to start over or return home. The board
@@ -324,11 +324,13 @@ loss. Each day stands on its own.
 
 Each island has a label with its number, row and column, its progress and
 its bridges by direction, for example `Island 4, row 2, column 3. 2 of 4
-bridges. 1 up, 1 to the right`. The board has a label with its size, and the
-status line is a polite live region. Nothing depends on color alone: island
-states differ in shape, loops have a band, and the status line names every
-problem in words. The colors are the theme's own pairs in light and dark
-mode.
+bridges. 1 up, 1 to the right`. The board has a label with its size and how
+many islands are complete, for example `Bridges board, 10 columns by 10
+rows, 30 islands, 12 complete`, since a screen reader cannot see the filled
+islands. The status line is a polite live region. Nothing depends on color
+alone: island states differ in shape, loops have a band, and the status line
+names every problem in words. The colors are the theme's own pairs in light
+and dark mode.
 
 ## Saving
 

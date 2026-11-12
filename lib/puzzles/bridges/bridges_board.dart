@@ -392,9 +392,12 @@ class _BridgesBoardState extends State<BridgesBoard>
             size: geometry.size,
             child: Semantics(
               container: true,
+              // The filled islands show progress at a glance; a screen
+              // reader hears it here.
               label:
                   'Bridges board, ${_puzzle.width} columns by '
-                  '${_puzzle.height} rows, ${_puzzle.islands.length} islands',
+                  '${_puzzle.height} rows, ${_puzzle.islands.length} islands, '
+                  '$_completeIslands complete',
               child: Focus(
                 focusNode: _focusNode,
                 onKeyEvent: _onKeyEvent,
@@ -428,6 +431,10 @@ class _BridgesBoardState extends State<BridgesBoard>
   }
 
   Position get _cursorOrFirst => _cursor ?? _puzzle.islands.first.position;
+
+  int get _completeIslands => _game.check.islandStatuses.values
+      .where((status) => status == IslandStatus.met)
+      .length;
 }
 
 /// The direction a drag that has moved by [movement] aims in, or `null`

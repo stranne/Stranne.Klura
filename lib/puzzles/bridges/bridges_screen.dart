@@ -272,8 +272,8 @@ class _StatusLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final (:text, :isProblem) =
-        notice ?? _describe(game.check, game.puzzle.islands.length);
+    final message =
+        notice ?? _problemIn(game.check, game.puzzle.islands.length);
     final style = theme.textTheme.bodyMedium!.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
@@ -289,41 +289,45 @@ class _StatusLine extends StatelessWidget {
         height: height,
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 160),
-          child: Center(
-            key: ValueKey(text),
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  if (isProblem)
-                    WidgetSpan(
-                      alignment: PlaceholderAlignment.middle,
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: Icon(
-                          Icons.info_outline,
-                          size: 18,
-                          color: theme.colorScheme.error,
+          child: switch (message) {
+            null => const SizedBox.shrink(),
+            (:final text, :final isProblem) => Center(
+              key: ValueKey(text),
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    if (isProblem)
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: Icon(
+                            Icons.info_outline,
+                            size: 18,
+                            color: theme.colorScheme.error,
+                          ),
                         ),
                       ),
-                    ),
-                  TextSpan(text: text),
-                ],
+                    TextSpan(text: text),
+                  ],
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: style,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: style,
             ),
-          ),
+          },
         ),
       ),
     );
   }
 }
 
-/// Describes how far [check] is from solved, marking a problem the player
-/// should look at.
-_Notice _describe(BridgesCheck check, int islandCount) {
+/// Names what in [check] the player should look at, or returns `null` when
+/// nothing is wrong. Progress itself shows on the board, in the filled
+/// islands.
+_Notice? _problemIn(BridgesCheck check, int islandCount) {
   final statuses = check.islandStatuses.values;
   final over = statuses.where((status) => status == IslandStatus.over).length;
   final met = statuses.where((status) => status == IslandStatus.met).length;
@@ -341,7 +345,7 @@ _Notice _describe(BridgesCheck check, int islandCount) {
       isProblem: true,
     );
   }
-  return (text: '$met of $islandCount islands complete', isProblem: false);
+  return null;
 }
 
 class _SolvedPanel extends StatelessWidget {
