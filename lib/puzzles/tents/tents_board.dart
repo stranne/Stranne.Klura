@@ -22,9 +22,18 @@ import 'package:material_ui/material_ui.dart';
 /// between cells and Space or Enter changes one. The board fills the space
 /// it is given, keeping its cells square.
 class TentsBoard extends StatefulWidget {
-  const TentsBoard({required this.controller, this.onSound, super.key});
+  const TentsBoard({
+    required this.controller,
+    required this.focusNode,
+    this.onSound,
+    super.key,
+  });
 
   final TentsController controller;
+
+  /// The board's keyboard focus, owned by the screen, which also gives it to
+  /// the board when the player presses an arrow key elsewhere.
+  final FocusNode focusNode;
 
   /// Called with the sound of each move the player makes. Moving the focus
   /// makes no sound.
@@ -65,7 +74,6 @@ class _TentsBoardState extends State<TentsBoard> with TickerProviderStateMixin {
     duration: _waveDuration,
     value: 1,
   );
-  final FocusNode _focusNode = FocusNode(debugLabel: 'Tents board');
   final ValueNotifier<GrassDrag?> _drag = ValueNotifier(null);
   final ValueNotifier<Position?> _hover = ValueNotifier(null);
 
@@ -86,6 +94,8 @@ class _TentsBoardState extends State<TentsBoard> with TickerProviderStateMixin {
   TentsBoardGeometry? _geometry;
   bool _reduceMotion = false;
 
+  FocusNode get _focusNode => widget.focusNode;
+
   @override
   void initState() {
     super.initState();
@@ -98,6 +108,11 @@ class _TentsBoardState extends State<TentsBoard> with TickerProviderStateMixin {
   @override
   void didUpdateWidget(TentsBoard oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusNode != widget.focusNode) {
+      oldWidget.focusNode.removeListener(_updateFocusHighlight);
+      widget.focusNode.addListener(_updateFocusHighlight);
+      _showFocus = _focusShows;
+    }
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.removeListener(_onGameChanged);
       widget.controller.addListener(_onGameChanged);
@@ -112,7 +127,7 @@ class _TentsBoardState extends State<TentsBoard> with TickerProviderStateMixin {
   void dispose() {
     widget.controller.removeListener(_onGameChanged);
     FocusManager.instance.removeHighlightModeListener(_onHighlightModeChanged);
-    _focusNode.dispose();
+    _focusNode.removeListener(_updateFocusHighlight);
     _drag.dispose();
     _hover.dispose();
     _change.dispose();
@@ -167,10 +182,14 @@ class _TentsBoardState extends State<TentsBoard> with TickerProviderStateMixin {
   void _onHighlightModeChanged(FocusHighlightMode mode) =>
       _updateFocusHighlight();
 
+  /// Whether the focus ring shows: the board has the focus and the player
+  /// uses a keyboard or a mouse rather than touch.
+  bool get _focusShows =>
+      _focusNode.hasFocus &&
+      FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
+
   void _updateFocusHighlight() {
-    final showFocus =
-        _focusNode.hasFocus &&
-        FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
+    final showFocus = _focusShows;
     if (showFocus != _showFocus) {
       setState(() => _showFocus = showFocus);
     }

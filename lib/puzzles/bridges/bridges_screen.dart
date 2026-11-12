@@ -44,8 +44,9 @@ class BridgesScreen extends StatelessWidget {
       controller: controller,
       settings: settings,
       sound: sound,
-      board: (context, showNotice, playSound) => BridgesBoard(
+      board: (context, focusNode, showNotice, playSound) => BridgesBoard(
         controller: controller,
+        focusNode: focusNode,
         onBlocked: () => showNotice((
           text: 'Bridges cannot cross each other.',
           isProblem: true,

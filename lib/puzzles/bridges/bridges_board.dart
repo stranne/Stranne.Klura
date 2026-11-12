@@ -25,12 +25,17 @@ import 'package:material_ui/material_ui.dart';
 class BridgesBoard extends StatefulWidget {
   const BridgesBoard({
     required this.controller,
+    required this.focusNode,
     this.onBlocked,
     this.onSound,
     super.key,
   });
 
   final BridgesController controller;
+
+  /// The board's keyboard focus, owned by the screen, which also gives it to
+  /// the board when the player presses an arrow key elsewhere.
+  final FocusNode focusNode;
 
   /// Called when the player tries a bridge that would cross another.
   final VoidCallback? onBlocked;
@@ -81,7 +86,6 @@ class _BridgesBoardState extends State<BridgesBoard>
     duration: _waveDuration,
     value: 1,
   );
-  final FocusNode _focusNode = FocusNode(debugLabel: 'Bridges board');
   final ValueNotifier<BoardDrag?> _drag = ValueNotifier(null);
   final ValueNotifier<BoardHover?> _hover = ValueNotifier(null);
 
@@ -108,6 +112,7 @@ class _BridgesBoardState extends State<BridgesBoard>
   bool _reduceMotion = false;
 
   BridgesPuzzle get _puzzle => _game.puzzle;
+  FocusNode get _focusNode => widget.focusNode;
 
   @override
   void initState() {
@@ -121,6 +126,11 @@ class _BridgesBoardState extends State<BridgesBoard>
   @override
   void didUpdateWidget(BridgesBoard oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusNode != widget.focusNode) {
+      oldWidget.focusNode.removeListener(_updateFocusHighlight);
+      widget.focusNode.addListener(_updateFocusHighlight);
+      _showFocus = _focusShows;
+    }
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.removeListener(_onGameChanged);
       widget.controller.addListener(_onGameChanged);
@@ -137,7 +147,7 @@ class _BridgesBoardState extends State<BridgesBoard>
   void dispose() {
     widget.controller.removeListener(_onGameChanged);
     FocusManager.instance.removeHighlightModeListener(_onHighlightModeChanged);
-    _focusNode.dispose();
+    _focusNode.removeListener(_updateFocusHighlight);
     _drag.dispose();
     _hover.dispose();
     _change.dispose();
@@ -191,10 +201,14 @@ class _BridgesBoardState extends State<BridgesBoard>
   void _onHighlightModeChanged(FocusHighlightMode mode) =>
       _updateFocusHighlight();
 
+  /// Whether the focus ring shows: the board has the focus and the player
+  /// uses a keyboard or a mouse rather than touch.
+  bool get _focusShows =>
+      _focusNode.hasFocus &&
+      FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
+
   void _updateFocusHighlight() {
-    final showFocus =
-        _focusNode.hasFocus &&
-        FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
+    final showFocus = _focusShows;
     if (showFocus != _showFocus) {
       setState(() => _showFocus = showFocus);
     }

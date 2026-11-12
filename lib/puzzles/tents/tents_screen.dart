@@ -44,8 +44,11 @@ class TentsScreen extends StatelessWidget {
       controller: controller,
       settings: settings,
       sound: sound,
-      board: (context, showNotice, playSound) =>
-          TentsBoard(controller: controller, onSound: playSound),
+      board: (context, focusNode, showNotice, playSound) => TentsBoard(
+        controller: controller,
+        focusNode: focusNode,
+        onSound: playSound,
+      ),
       problemIn: _problemIn,
       solvedDetail:
           'All ${controller.game.puzzle.trees.length} trees have a tent',

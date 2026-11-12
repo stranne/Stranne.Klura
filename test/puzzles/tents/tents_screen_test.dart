@@ -312,6 +312,23 @@ void main() {
 ''');
   });
 
+  testWidgets('an arrow key gives the board the focus without moving', (
+    tester,
+  ) async {
+    final controller = await pumpGame(tester, small);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pump();
+
+    expect(boardOf(controller), '''
+  0002
+1 -.T.
+0 ....
+1 ..T.
+''');
+  });
+
   testWidgets('describes cells and numbers for screen readers', (
     tester,
   ) async {

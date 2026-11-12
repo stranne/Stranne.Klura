@@ -230,9 +230,11 @@ the timer, sound and the solved panel work as for Bridges; see
   that starts on grass clears grass instead. Cells the drag would change
   show a faint preview while the finger is down. A press that moves less
   than a third of a cell counts as a tap.
-- **Keys**: the board is a single tab stop. The arrow keys move a focus ring
-  between cells, and Space or Enter changes the cell under it. Ctrl+Z or
-  Cmd+Z undoes.
+- **Keys**: the board is a single tab stop, and as in Bridges an arrow key
+  pressed while anything else on the screen has the focus gives it to the
+  board, only showing the focus ring. The arrow keys move the ring between
+  cells, and Space or Enter changes the cell under it. Ctrl+Z or Cmd+Z
+  undoes.
 - **Mouse**: hovering a cell shows faintly what a click would leave there.
 
 Grass is only the player's note. The rules check ignores it, and no cell is

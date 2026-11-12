@@ -259,15 +259,21 @@ day, and the home screen shows the new day once the player closes it.
   counts as a tap where it went down. Flutter turns a mouse press that moves
   two pixels into a drag, so without this a click that slipped would do
   nothing.
-- **Keys**: the board is a single tab stop. The arrow keys move a focus ring
-  to the neighbor a bridge would reach, or else to the nearest island that
-  way. Two arrows pressed together, such as Down and Right, move it to the
-  island nearest that diagonal, which a single arrow passes by whenever a
-  neighbor lies straight that way. One of the two keys always goes down
-  first and steps as usual; the second turns that step into the diagonal
-  one from where it began, and repeating it while the first is held keeps
-  moving diagonally. Shift with an arrow moves the bridges in that direction
-  through the cycle. Ctrl+Z or Cmd+Z undoes.
+- **Keys**: the board is a single tab stop, and an arrow key pressed while
+  anything else on the screen has the focus gives it to the board, so the
+  keyboard needs no Tab to begin. That press only shows the focus ring, where
+  it last was or else on the first island, and builds nothing even with
+  Shift, since the player cannot yet see where a move would start. The board
+  does not take the focus when the puzzle opens: Flutter shows focus rings
+  to a mouse as well as a keyboard, so a mouse player would see one at once.
+  The arrow keys move the focus ring to the neighbor a bridge would reach,
+  or else to the nearest island that way. Two arrows pressed together, such
+  as Down and Right, move it to the island nearest that diagonal, which a
+  single arrow passes by whenever a neighbor lies straight that way. One of
+  the two keys always goes down first and steps as usual; the second turns
+  that step into the diagonal one from where it began, and repeating it
+  while the first is held keeps moving diagonally. Shift with an arrow moves
+  the bridges in that direction through the cycle. Ctrl+Z or Cmd+Z undoes.
 - **Mouse**: hovering a gap or a bridge previews what a click would make, and
   hovering an island shows faint dashes to each neighbor it can still bridge
   to. The same dashes show from a pressed island and from the island with

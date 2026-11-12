@@ -452,17 +452,70 @@ void main() {
     );
   });
 
+  testWidgets('an arrow key gives the board the focus without moving', (
+    tester,
+  ) async {
+    final controller = await pumpGame(tester, small);
+
+    // Arrows with Alt and the like are left to the browser.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+    await tester.pump();
+
+    expect(_boardHasFocus(), isFalse);
+
+    // The first press only shows the focus ring on the first island, even
+    // with Shift.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pump();
+
+    expect(_boardHasFocus(), isTrue);
+    expect(controller.game.arrangement.isEmpty, isTrue);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pumpAndSettle();
+
+    expect(controller.game.arrangement, BridgeArrangement({left: 1}));
+  });
+
+  testWidgets('an arrow key brings the focus back to the board', (
+    tester,
+  ) async {
+    final controller = await pumpGame(tester, small);
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+
+    expect(
+      FocusManager.instance.primaryFocus?.context
+          ?.findAncestorWidgetOfExactType<AppBar>(),
+      isNotNull,
+    );
+
+    // The press leaves the focus ring on the first island, from which Shift
+    // and Down builds; one step to the right would have nothing below.
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pumpAndSettle();
+
+    expect(_boardHasFocus(), isTrue);
+    expect(controller.game.arrangement, BridgeArrangement({left: 1}));
+  });
+
   testWidgets('a solved board gives up the focus until a start over', (
     tester,
   ) async {
-    bool boardHasFocus() =>
-        FocusManager.instance.primaryFocus?.debugLabel == 'Bridges board';
-
     final controller = await pumpGame(tester, small);
     await tester.tapAt(centerOf(tester, controller, const Position(1, 1)));
     await tester.pump();
 
-    expect(boardHasFocus(), isTrue);
+    expect(_boardHasFocus(), isTrue);
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
@@ -472,19 +525,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.game.isSolved, isTrue);
-    expect(boardHasFocus(), isFalse);
+    expect(_boardHasFocus(), isFalse);
 
     await tester.tapAt(centerOf(tester, controller, const Position(1, 1)));
     await tester.pump();
 
-    expect(boardHasFocus(), isFalse);
+    expect(_boardHasFocus(), isFalse);
 
     await tester.tap(find.text('Start over').hitTestable());
     await tester.pumpAndSettle();
     await tester.tapAt(centerOf(tester, controller, const Position(1, 1)));
     await tester.pump();
 
-    expect(boardHasFocus(), isTrue);
+    expect(_boardHasFocus(), isTrue);
   });
 
   testWidgets('the move that solves the puzzle moves the focus to Done', (
@@ -503,6 +556,13 @@ void main() {
 
     expect(controller.game.isSolved, isTrue);
     expect(Focus.of(tester.element(find.text('Done'))).hasPrimaryFocus, isTrue);
+
+    // The solved board takes no moves, so an arrow does not bring the focus
+    // back to it.
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pump();
+
+    expect(_boardHasFocus(), isFalse);
   });
 
   testWidgets('describes islands and progress for screen readers', (
@@ -893,6 +953,9 @@ void main() {
     });
   });
 }
+
+bool _boardHasFocus() =>
+    FocusManager.instance.primaryFocus?.debugLabel == 'Board';
 
 /// Keeps every sound it is asked to play, in order.
 final class _RecordedSounds implements SoundOutput {

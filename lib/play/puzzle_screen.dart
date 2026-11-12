@@ -12,11 +12,17 @@ import 'package:material_ui/material_ui.dart';
 /// A short message in the status line, marked when it reports a problem.
 typedef PuzzleNotice = ({String text, bool isProblem});
 
-/// Builds a puzzle's board, which may show a short [PuzzleNotice] in the
-/// status line through `showNotice` and play the [PuzzleSound] of a move
-/// through `playSound`, which stays silent while the player has sounds off.
+/// Builds a puzzle's board, which takes the keyboard focus through
+/// `focusNode`, may show a short [PuzzleNotice] in the status line through
+/// `showNotice` and plays the [PuzzleSound] of a move through `playSound`,
+/// which stays silent while the player has sounds off.
+///
+/// The screen owns `focusNode` and gives the board the focus when the player
+/// presses an arrow key elsewhere on the screen. The board refuses the focus
+/// while the game is solved, since it then takes no moves.
 typedef PuzzleBoardBuilder = Widget Function(
   BuildContext context,
+  FocusNode focusNode,
   ValueSetter<PuzzleNotice> showNotice,
   ValueSetter<PuzzleSound> playSound,
 );
@@ -92,6 +98,13 @@ class PuzzleScreen<G extends PuzzleGame> extends StatefulWidget {
 /// How long a short notice stays in the status line.
 const Duration _noticeDuration = Duration(milliseconds: 2800);
 
+final Set<LogicalKeyboardKey> _arrowKeys = {
+  LogicalKeyboardKey.arrowUp,
+  LogicalKeyboardKey.arrowRight,
+  LogicalKeyboardKey.arrowDown,
+  LogicalKeyboardKey.arrowLeft,
+};
+
 class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
   PuzzleNotice? _notice;
   Timer? _noticeTimer;
@@ -108,6 +121,7 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
   /// that solves it.
   late bool _isSolved;
 
+  final FocusNode _boardFocus = FocusNode(debugLabel: 'Board');
   final FocusNode _doneFocus = FocusNode(debugLabel: 'Done');
 
   PuzzleController<Enum, G> get _controller => widget.controller;
@@ -147,6 +161,7 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
     _controller
       ..removeListener(_onGameChanged)
       ..pauseTiming();
+    _boardFocus.dispose();
     _doneFocus.dispose();
     super.dispose();
   }
@@ -165,6 +180,29 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
       });
     }
     _isSolved = isSolved;
+  }
+
+  /// Gives the board the keyboard focus when the player presses an arrow
+  /// key while something else on the screen has it, so the keyboard works
+  /// without tabbing to the board first. Nothing else on the screen uses the
+  /// arrows. The press only shows the board's focus ring, even with Shift,
+  /// since the player cannot yet see where a move would start.
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    final keyboard = HardwareKeyboard.instance;
+    // Arrows with these belong to the browser and the system, such as Alt
+    // and Left for back.
+    final withShortcutModifier =
+        keyboard.isControlPressed ||
+        keyboard.isAltPressed ||
+        keyboard.isMetaPressed;
+    if (event is KeyUpEvent ||
+        !_arrowKeys.contains(event.logicalKey) ||
+        withShortcutModifier ||
+        !_boardFocus.canRequestFocus) {
+      return KeyEventResult.ignored;
+    }
+    _boardFocus.requestFocus();
+    return KeyEventResult.handled;
   }
 
   /// Runs the timer only while the player can see the board: the app is in
@@ -243,6 +281,9 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
       },
       child: Focus(
         autofocus: true,
+        // The board handles its own arrow keys, so they reach this only
+        // while something else has the focus.
+        onKeyEvent: _onKeyEvent,
         child: Scaffold(
           appBar: AppBar(
             // The back button already leaves room before the title. Without
@@ -275,7 +316,12 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
-                        child: widget.board(context, _showNotice, _playSound),
+                        child: widget.board(
+                          context,
+                          _boardFocus,
+                          _showNotice,
+                          _playSound,
+                        ),
                       ),
                     ),
                     ListenableBuilder(
