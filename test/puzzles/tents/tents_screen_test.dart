@@ -234,6 +234,32 @@ void main() {
     expect(find.textContaining('A tent has no tree beside it'), findsOneWidget);
   });
 
+  testWidgets('names tents that have to share a tree', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await pumpGame(tester, '''
+  0100
+0 ...^
+0 ....
+1 .^T^
+''');
+
+    expect(
+      find.textContaining(
+        'A tent has no tree beside it · Some tents have to share a tree',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel('Row 3, column 4, tent, has to share a tree'),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel('Row 3, column 3, tree, shared by too many tents'),
+      findsOneWidget,
+    );
+    semantics.dispose();
+  });
+
   testWidgets('solving shows the solved message and locks the board', (
     tester,
   ) async {

@@ -81,7 +81,7 @@ describes.
 | --- | --- |
 | `tents_puzzle.dart` | `TentsPuzzle`: the grid, its trees and the number of tents in each row and column |
 | `tents_marks.dart` | `TentsMark` and `TentsMarks`: the player's tents and grass as an immutable value |
-| `pairing.dart` | `countPairs`: the most trees and tents that can be paired, by augmenting paths |
+| `pairing.dart` | `countPairs`: the most trees and tents that can be paired, by augmenting paths; `findUnpaired`: the tents that some such pairing leaves out |
 | `tents_rules.dart` | `checkTents`: judges marks against the rules |
 | `tents_solver.dart` | `solveTents`, which finds solutions up to a limit, and `gradeTents` |
 | `tents_generator.dart` | `TentsLevel`, `TentsConfig`, `generateTents` and the daily entry point |
@@ -108,6 +108,20 @@ every pair of touching tents, the tents with no tree beside them, and
 whether every tent and every tree can have a partner of its own. Grass plays
 no part. Marks are solved when every line is met, no tents touch and the
 trees and tents pair up completely.
+
+When the tents cannot all have a tree of their own, `checkTents` also names
+the tents that have to share one and the trees they share: the tents beside
+a tree that some largest pairing leaves out. Each such tent belongs to a
+group with fewer trees beside it than tents, and any tent of the group
+could be the one left over, so the whole group is named. This includes a
+pair of tents beside one lone tree as well as a longer chain, such as three
+tents around two trees. The group is the same whichever largest pairing the
+search finds, so moving an unrelated tent never changes it, and a tent that
+keeps a tree of its own however the others pair up is never in it.
+
+The checks judge only the tents that are placed, never what the empty cells
+still need. A tree whose cells are all grass or beside other tents is not
+flagged: finding that is part of solving, and grass is only a note.
 
 ## Solver
 
@@ -229,7 +243,9 @@ marked automatically.
 - A row or column number fades once its tents are all placed, and turns red
   inside a red ring when it has too many.
 - Touching tents turn red over a soft red band, and a tent with no tree
-  beside it turns red over a soft red ring.
+  beside it turns red over a soft red ring. Tents that have to share a tree
+  turn red over a band that runs through the trees they share. The bands
+  form one shape, so they stay as soft where they meet.
 - The status line stays empty while nothing is wrong. Otherwise it names
   each problem in words: tents that touch, tents without a tree, tents that
   would have to share a tree, and rows or columns with too many tents.
@@ -239,7 +255,9 @@ marked automatically.
 ### Accessibility
 
 Each cell has a label with its row, column and content, and any problem, for
-example `Row 2, column 4, tent, touches another tent`. Free cells are
+example `Row 2, column 4, tent, touches another tent`. Tents that have to
+share a tree say `has to share a tree`, and their trees say `shared by too
+many tents`. Free cells are
 buttons that change the cell. Each number has a label with the tents placed,
 for example `Column 4: 2 tents, 2 placed, complete`, and the board has one
 with its size, its trees and the tents placed. Nothing depends on color

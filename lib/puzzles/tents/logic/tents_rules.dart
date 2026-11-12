@@ -13,6 +13,8 @@ final class TentsCheck {
     required this.columnStatuses,
     required this.touching,
     required this.tentsWithoutTree,
+    required this.tentsSharingTree,
+    required this.sharedTrees,
     required this.everyTentHasTree,
     required this.everyTreeHasTent,
   });
@@ -29,6 +31,17 @@ final class TentsCheck {
 
   /// The tents with no tree directly beside them, in reading order.
   final List<Position> tentsWithoutTree;
+
+  /// The tents that stand beside trees but outnumber them, in reading order.
+  ///
+  /// These tents have fewer trees beside them than their number, so at least
+  /// one of them has to share a tree. Which one is never fixed, so they are
+  /// all named, but a tent that keeps a tree of its own however the others
+  /// pair up is not.
+  final List<Position> tentsSharingTree;
+
+  /// The trees beside [tentsSharingTree], in reading order.
+  final List<Position> sharedTrees;
 
   /// Whether each tent can have a tree of its own beside it, with no two
   /// tents sharing one.
@@ -95,7 +108,15 @@ TentsCheck checkTents(TentsPuzzle puzzle, TentsMarks marks) {
     for (final tent in tents)
       [for (final tree in puzzle.treesBeside(tent)) treeIndexes[tree]!],
   ];
-  final pairs = countPairs(treesOfTent, puzzle.trees.length);
+  final unpaired = findUnpaired(treesOfTent, puzzle.trees.length);
+  final pairs = tents.length - unpaired.length;
+  final sharing = [
+    for (final index in unpaired)
+      if (treesOfTent[index].isNotEmpty) index,
+  ];
+  final sharedTreeIndexes = {
+    for (final index in sharing) ...treesOfTent[index],
+  };
 
   return TentsCheck._(
     rowStatuses: List.unmodifiable(_statuses(rowCounts, puzzle.rowTents)),
@@ -106,6 +127,13 @@ TentsCheck checkTents(TentsPuzzle puzzle, TentsMarks marks) {
     tentsWithoutTree: List.unmodifiable([
       for (final (index, tent) in tents.indexed)
         if (treesOfTent[index].isEmpty) tent,
+    ]),
+    tentsSharingTree: List.unmodifiable([
+      for (final index in sharing) tents[index],
+    ]),
+    sharedTrees: List.unmodifiable([
+      for (final (index, tree) in puzzle.trees.indexed)
+        if (sharedTreeIndexes.contains(index)) tree,
     ]),
     everyTentHasTree: pairs == tents.length,
     everyTreeHasTent: pairs == puzzle.trees.length,

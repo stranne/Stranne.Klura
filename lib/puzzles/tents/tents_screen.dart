@@ -60,8 +60,7 @@ PuzzleNotice? _problemIn(TentsGame game) {
     if (check.touching.isNotEmpty) 'Some tents touch',
     if (withoutTree == 1) 'A tent has no tree beside it',
     if (withoutTree > 1) '$withoutTree tents have no tree beside them',
-    if (withoutTree == 0 && !check.everyTentHasTree)
-      'Some tents have to share a tree',
+    if (check.tentsSharingTree.isNotEmpty) 'Some tents have to share a tree',
     if (overRows + overColumns > 0)
       switch ((overRows, overColumns)) {
         (1, 0) => 'A row has too many tents',

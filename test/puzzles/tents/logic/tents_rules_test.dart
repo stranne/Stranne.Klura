@@ -110,9 +110,43 @@ void main() {
     expect(result.linesMet, isTrue);
     expect(result.touching, isEmpty);
     expect(result.tentsWithoutTree, isEmpty);
+    expect(result.tentsSharingTree, const [Position(1, 0), Position(3, 0)]);
+    expect(result.sharedTrees, const [Position(2, 0)]);
     expect(result.everyTentHasTree, isFalse);
     expect(result.everyTreeHasTent, isFalse);
     expect(result.isSolved, isFalse);
+  });
+
+  test('names every tent of a group that outnumbers its trees', () {
+    // The three tents in the top row have only two trees between them.
+    // The tent below has a tree of its own and is not named.
+    final result = check('''
+  101010
+2 ^T^T^.
+0 ......
+1 ^T....
+''');
+
+    expect(result.tentsSharingTree, const [
+      Position(0, 0),
+      Position(2, 0),
+      Position(4, 0),
+    ]);
+    expect(result.sharedTrees, const [Position(1, 0), Position(3, 0)]);
+    expect(result.everyTentHasTree, isFalse);
+  });
+
+  test('does not count a tent with no tree beside it as sharing', () {
+    final result = check('''
+  01000
+1 .^T^.
+0 .....
+0 ^....
+''');
+
+    expect(result.tentsWithoutTree, const [Position(0, 2)]);
+    expect(result.tentsSharingTree, const [Position(1, 0), Position(3, 0)]);
+    expect(result.sharedTrees, const [Position(2, 0)]);
   });
 
   test('lets a tent belong to whichever tree it can', () {
@@ -125,6 +159,7 @@ void main() {
 0 ....
 ''');
 
+    expect(result.tentsSharingTree, isEmpty);
     expect(result.everyTentHasTree, isTrue);
     expect(result.everyTreeHasTent, isTrue);
     expect(result.isSolved, isTrue);

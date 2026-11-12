@@ -147,6 +147,7 @@ class TentsBoardPainter extends CustomPainter {
     final problemTents = {
       ...game.check.touchingTents,
       ...game.check.tentsWithoutTree,
+      ...game.check.tentsSharingTree,
     };
     for (final position in game.marks.tents) {
       final appearing = changes[position]?.to == TentsMark.tent;
@@ -209,21 +210,34 @@ class TentsBoardPainter extends CustomPainter {
     );
   }
 
-  /// Soft bands join tents that touch, and a soft ring marks a tent with no
-  /// tree beside it, under the tents themselves.
+  /// Soft bands join tents that touch, and tents that have to share a tree
+  /// to the trees beside them. A soft ring marks a tent with no tree beside
+  /// it. All of it lies under the trees and tents themselves.
   void _paintProblems(Canvas canvas) {
-    final halo = Paint()
-      ..color = colors.problemHalo
-      ..strokeWidth = _cell * 0.86
-      ..strokeCap = StrokeCap.round;
-    for (final (first, second) in game.check.touching) {
-      canvas.drawLine(
-        geometry.centerOf(first),
-        geometry.centerOf(second),
-        halo,
-      );
+    final check = game.check;
+    final bands = [
+      ...check.touching,
+      for (final tent in check.tentsSharingTree)
+        for (final tree in game.puzzle.treesBeside(tent)) (tent, tree),
+    ];
+    // One path for every band, so the color stays as soft where they meet.
+    final path = Path();
+    for (final (from, to) in bands) {
+      final start = geometry.centerOf(from);
+      final end = geometry.centerOf(to);
+      path
+        ..moveTo(start.dx, start.dy)
+        ..lineTo(end.dx, end.dy);
     }
-    for (final tent in game.check.tentsWithoutTree) {
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = colors.problemHalo
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _cell * 0.86
+        ..strokeCap = StrokeCap.round,
+    );
+    for (final tent in check.tentsWithoutTree) {
       canvas.drawCircle(
         geometry.centerOf(tent),
         _cell * 0.43,

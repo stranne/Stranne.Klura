@@ -423,6 +423,8 @@ class _TentsBoardState extends State<TentsBoard> with TickerProviderStateMixin {
     final puzzle = _game.puzzle;
     final touching = _game.check.touchingTents;
     final withoutTree = _game.check.tentsWithoutTree.toSet();
+    final sharing = _game.check.tentsSharingTree.toSet();
+    final shared = _game.check.sharedTrees.toSet();
     final nodes = <Widget>[];
     for (var y = 0; y < puzzle.height; y++) {
       for (var x = 0; x < puzzle.width; x++) {
@@ -446,6 +448,8 @@ class _TentsBoardState extends State<TentsBoard> with TickerProviderStateMixin {
                 content,
                 if (touching.contains(position)) 'touches another tent',
                 if (withoutTree.contains(position)) 'no tree beside it',
+                if (sharing.contains(position)) 'has to share a tree',
+                if (shared.contains(position)) 'shared by too many tents',
               ].join(', '),
               onTap: canChange ? () => _cycle(position) : null,
               child: const SizedBox.expand(),
