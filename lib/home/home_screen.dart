@@ -169,8 +169,7 @@ class _BridgesCard extends StatelessWidget {
             )
           : (text: 'Solved', spoken: 'Solved', solved: true);
     }
-    if (bridges.started(level) case final game?
-        when !game.game.arrangement.isEmpty) {
+    if (bridges.started(level) case final game? when game.isStarted) {
       return (text: 'In progress', spoken: 'In progress', solved: false);
     }
     return null;

@@ -15,9 +15,9 @@ import 'package:klura/puzzles/bridges/play_timer.dart';
 /// pause of a timer saves the game, and its first solve goes into the
 /// history at once.
 ///
-/// The date never changes: a new day's puzzles wait for the next launch, so
-/// an open game is never replaced. Listeners hear about every move in any
-/// of the games, not about the timers.
+/// The date never changes. When the day moves on, the app stops these games
+/// saving and replaces them with the new day's. Listeners hear about every
+/// move in any of the games, not about the timers.
 final class BridgesDailyGames extends ChangeNotifier {
   BridgesDailyGames(this.date, BridgesStorage storage, {this._clock})
     : _storage = storage,
@@ -36,6 +36,7 @@ final class BridgesDailyGames extends ChangeNotifier {
   final MonotonicClock? _clock;
   BridgesHistory _history;
   final Map<BridgesLevel, BridgesController> _games = {};
+  bool _isSaving = true;
 
   /// The game at [level], or `null` if it has neither been opened nor saved.
   BridgesController? started(BridgesLevel level) => _games[level];
@@ -54,6 +55,12 @@ final class BridgesDailyGames extends ChangeNotifier {
   ///
   /// Until today's first solve, the run up to yesterday still counts.
   int get streak => countDailyStreak(_history.solvedDays, date);
+
+  /// Stops saving the games, once the app has moved on to another day.
+  ///
+  /// The new day's games clear these saves away, and a screen that closes
+  /// afterwards still pauses its timer, which must not write them back.
+  void stopSaving() => _isSaving = false;
 
   BridgesController _restore(BridgesSave save) => BridgesController(
     level: save.level,
@@ -92,6 +99,9 @@ final class BridgesDailyGames extends ChangeNotifier {
   }
 
   void _save(BridgesController controller) {
+    if (!_isSaving) {
+      return;
+    }
     _storage.saveGame(
       BridgesSave(
         level: controller.level,

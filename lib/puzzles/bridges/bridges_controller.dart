@@ -46,6 +46,10 @@ final class BridgesController extends ValueNotifier<BridgesGame> {
   /// It stays true after a start over, which clears the board.
   bool get wasSolved => _wasSolved;
 
+  /// Whether the player has begun this game: it has bridges, or it was
+  /// solved, which still counts after a start over.
+  bool get isStarted => _wasSolved || !value.arrangement.isEmpty;
+
   /// The game becomes [newValue], which stops the timer for good if it is the
   /// first solve.
   @override

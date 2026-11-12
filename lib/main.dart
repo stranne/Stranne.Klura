@@ -4,5 +4,5 @@ import 'package:klura/app/klura_app.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
-  runApp(KluraApp(today: DateTime.now(), store: openBrowserStore()));
+  runApp(KluraApp(store: openBrowserStore()));
 }

@@ -215,14 +215,26 @@ For example, the Normal puzzle of 2026-11-11 and its solution:
 ## Playing
 
 The home screen lists today's Normal and Hard puzzles, how far each has come
-and the daily streak. The app reads the date once when it starts, so a new
-day's puzzles appear on the next launch and an open game is never replaced.
-Each level's puzzle is generated when first opened, which takes a few
-milliseconds, and saved on the device from then on: leaving a puzzle,
-reloading the page or closing the browser and coming back resumes it, as
-[Saving](#saving) describes. The puzzles have their own routes,
+and the daily streak. Each level's puzzle is generated when first opened,
+which takes a few milliseconds, and saved on the device from then on: leaving
+a puzzle, reloading the page or closing the browser and coming back resumes
+it, as [Saving](#saving) describes. The puzzles have their own routes,
 `#/bridges/normal` and `#/bridges/hard`, so the browser's back button returns
 home.
+
+### A new day
+
+The app reads the date when it starts, and again whenever it comes back to
+the front, at midnight and when a puzzle closes. A phone keeps a browser tab
+or a home-screen app alive for days without reloading it, so reading the
+date only at start would show yesterday's puzzles the next morning, and a
+solve would count for the wrong day.
+
+When the date has changed, the home screen moves on to the new day's puzzles
+at once, and so does a puzzle on screen that the player has not started: it
+has no bridges and was never solved. A started puzzle is never replaced. It
+stays on screen as the earlier day's puzzle, where a solve counts for that
+day, and the home screen shows the new day once the player closes it.
 
 ### Building bridges
 
@@ -410,11 +422,11 @@ A later format 2 must keep reading format 1. An older app that meets format
 
 ### Keeping and clearing
 
-Only today's games can be played, so at start the app removes the games of
-earlier days, after copying any solve into the history. A game therefore
-lives until the first launch on a later day. Each day has its own key, so a
-tab left open over midnight keeps writing yesterday's game and never touches
-today's.
+Only today's games can be played, so at start, and whenever it moves on to a
+new day, the app removes the games of earlier days, after copying any solve
+into the history. Each day has its own key, so a started game left open over
+midnight keeps writing yesterday's game and never touches today's; once it
+closes, the move to the new day removes it.
 
 The history is kept for good, since a streak can be any length. It grows by
 about 20 characters per solved puzzle, some 15,000 a year with both levels
