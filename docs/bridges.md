@@ -288,8 +288,9 @@ bridge gives a lighter tick.
 - When a move solves the puzzle, light spreads along the bridges from that
   move, each island lifting once as it passes, and after about a second a
   panel says `Solved` with buttons to start over or return home. The board
-  then takes no more moves. With reduced motion, the board skips the wave and
-  the shake.
+  then takes no more moves, and it gives up the keyboard focus and leaves the
+  tab order, so no focus ring is left on an island. With reduced motion, the
+  board skips the wave and the shake.
 
 ### Undo and start over
 

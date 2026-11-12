@@ -420,6 +420,9 @@ class _BridgesBoardState extends State<BridgesBoard>
                   '$_completeIslands complete',
               child: Focus(
                 focusNode: _focusNode,
+                // A solved board takes no moves, so it gives up the focus
+                // and its ring, as it is when the puzzle opens solved.
+                canRequestFocus: !_game.isSolved,
                 onKeyEvent: _onKeyEvent,
                 child: ValueListenableBuilder(
                   valueListenable: _hover,

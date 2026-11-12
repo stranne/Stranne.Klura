@@ -401,6 +401,41 @@ void main() {
     expect(controller.game.arrangement, BridgeArrangement({top: 1}));
   });
 
+  testWidgets('a solved board gives up the focus until a start over', (
+    tester,
+  ) async {
+    bool boardHasFocus() =>
+        FocusManager.instance.primaryFocus?.debugLabel == 'Bridges board';
+
+    final controller = await pumpGame(tester, small);
+    await tester.tapAt(centerOf(tester, controller, const Position(1, 1)));
+    await tester.pump();
+
+    expect(boardHasFocus(), isTrue);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pumpAndSettle();
+
+    expect(controller.game.isSolved, isTrue);
+    expect(boardHasFocus(), isFalse);
+
+    await tester.tapAt(centerOf(tester, controller, const Position(1, 1)));
+    await tester.pump();
+
+    expect(boardHasFocus(), isFalse);
+
+    await tester.tap(find.text('Start over').hitTestable());
+    await tester.pumpAndSettle();
+    await tester.tapAt(centerOf(tester, controller, const Position(1, 1)));
+    await tester.pump();
+
+    expect(boardHasFocus(), isTrue);
+  });
+
   testWidgets('describes islands and progress for screen readers', (
     tester,
   ) async {
