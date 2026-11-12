@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:klura/core/grid.dart';
 import 'package:klura/puzzles/bridges/logic/bridge_arrangement.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_save.dart';
@@ -267,94 +268,6 @@ void main() {
       final text = edited((json) => json['note'] = 'from a later version');
 
       expect(decodeBridgesSave(text), smallSave);
-    });
-  });
-
-  group('BridgesHistory', () {
-    final earlier = DateTime(2026, 11, 10);
-
-    test('keeps the first solve of each puzzle', () {
-      final history = const BridgesHistory.empty()
-          .withSolve(BridgesLevel.normal, date, const Duration(seconds: 90))
-          .withSolve(BridgesLevel.hard, earlier, const Duration(minutes: 9));
-
-      final again = history.withSolve(
-        BridgesLevel.normal,
-        DateTime(2026, 11, 12, 20),
-        const Duration(seconds: 30),
-      );
-
-      expect(again, same(history));
-      expect(
-        history.solveTime(BridgesLevel.normal, date),
-        const Duration(seconds: 90),
-      );
-      expect(history.solveTime(BridgesLevel.hard, date), isNull);
-      expect(history.solvedDays, {date, earlier});
-    });
-
-    test('is written as explicit JSON and read back', () {
-      final history = const BridgesHistory.empty()
-          .withSolve(BridgesLevel.normal, date, const Duration(seconds: 90))
-          .withSolve(BridgesLevel.normal, earlier, const Duration(seconds: 70))
-          .withSolve(BridgesLevel.hard, date, const Duration(minutes: 9));
-
-      final text = encodeBridgesHistory(history);
-      final read = decodeBridgesHistory(text)!;
-
-      expect(jsonDecode(text), {
-        'format': 1,
-        'solved': {
-          'normal': {'2026-11-10': 70000, '2026-11-12': 90000},
-          'hard': {'2026-11-12': 540000},
-        },
-      });
-      expect(read.solvedDays, {date, earlier});
-      expect(
-        read.solveTime(BridgesLevel.hard, date),
-        const Duration(minutes: 9),
-      );
-      expect(encodeBridgesHistory(read), text);
-    });
-
-    test('is read as missing when damaged or of another format', () {
-      final unreadable = [
-        '',
-        '{"format": 1',
-        '[]',
-        '{"format": 2, "solved": {}}',
-        '{"solved": {}}',
-        '{"format": 1, "solved": []}',
-      ];
-
-      for (final text in unreadable) {
-        expect(decodeBridgesHistory(text), isNull, reason: text);
-      }
-    });
-
-    test('skips damaged entries and keeps the rest', () {
-      final history = decodeBridgesHistory('''
-{
-  "format": 1,
-  "solved": {
-    "normal": {
-      "2026-11-12": 90000,
-      "2026-02-30": 1000,
-      "yesterday": 1000,
-      "2026-11-11": -5,
-      "2026-11-10": "fast"
-    },
-    "hard": [1, 2],
-    "easy": {"2026-11-09": 1000}
-  }
-}
-''')!;
-
-      expect(history.solvedDays, {date});
-      expect(
-        history.solveTime(BridgesLevel.normal, date),
-        const Duration(seconds: 90),
-      );
     });
   });
 }

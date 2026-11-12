@@ -1,3 +1,4 @@
+import 'package:klura/core/puzzle_game.dart';
 import 'package:klura/puzzles/bridges/logic/bridge_arrangement.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_puzzle.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_rules.dart';
@@ -14,7 +15,7 @@ import 'package:meta/meta.dart';
 /// The game never places a bridge that would cross another. Once solved it
 /// takes no more moves and cannot be undone; [reset] starts it over.
 @immutable
-final class BridgesGame {
+final class BridgesGame implements PuzzleGame {
   /// Starts a game of [puzzle] with the bridges of [arrangement], none by
   /// default, and nothing to undo.
   ///
@@ -39,12 +40,18 @@ final class BridgesGame {
   /// The game before the last move, or `null` before the first.
   final BridgesGame? _previous;
 
+  @override
   bool get isSolved => check.isSolved;
 
+  @override
+  bool get isBlank => arrangement.isEmpty;
+
   /// Whether [undo] would take back a move.
+  @override
   bool get canUndo => _previous != null && !isSolved;
 
   /// Whether [reset] would clear any bridges.
+  @override
   bool get canReset => !arrangement.isEmpty;
 
   /// The number of bridges [cycleBridges] would leave on [connection]: one

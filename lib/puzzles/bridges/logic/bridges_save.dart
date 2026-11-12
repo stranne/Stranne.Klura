@@ -1,14 +1,15 @@
 import 'dart:convert';
 
 import 'package:klura/core/calendar_date.dart';
+import 'package:klura/core/daily_storage.dart';
+import 'package:klura/core/grid.dart';
 import 'package:klura/puzzles/bridges/logic/bridge_arrangement.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_puzzle.dart';
 import 'package:klura/puzzles/bridges/logic/geometry.dart';
 import 'package:meta/meta.dart';
 
-/// The version of the Bridges save format, written into every saved game
-/// and history.
+/// The version of the Bridges save format, written into every saved game.
 ///
 /// Increase it whenever the format changes, so an older or newer save is
 /// never misread. A save of any other version reads as missing.
@@ -27,7 +28,7 @@ const int _maxSide = 40;
 /// follows from [puzzle] and [arrangement]; [wasSolved] records whether it
 /// ever was, since starting over after a solve clears the board.
 @immutable
-final class BridgesSave {
+final class BridgesSave implements DailySave<BridgesLevel> {
   /// Creates a save of a game at [level] on the calendar date of [date].
   ///
   /// Throws an [ArgumentError] if [arrangement] has bridges on a connection
@@ -78,9 +79,11 @@ final class BridgesSave {
     required this.wasSolved,
   });
 
+  @override
   final BridgesLevel level;
 
   /// The day of the puzzle, at local midnight.
+  @override
   final DateTime date;
 
   /// The key the puzzle was generated from.
@@ -92,9 +95,11 @@ final class BridgesSave {
   final BridgeArrangement arrangement;
 
   /// The time spent playing, which stops at the first solve.
+  @override
   final Duration playedTime;
 
   /// Whether the game has been solved at least once.
+  @override
   final bool wasSolved;
 
   @override
@@ -199,91 +204,6 @@ BridgesSave? decodeBridgesSave(String text) {
     } on ArgumentError {
       return null;
     }
-  }
-  return null;
-}
-
-/// The puzzles solved on each day, with the time the first solve took.
-///
-/// The history outlives the saved games, which are removed after their day,
-/// so it is the record of every day played to the end.
-@immutable
-final class BridgesHistory {
-  /// Creates a history without solves.
-  const BridgesHistory.empty() : _solves = const {};
-
-  const BridgesHistory._(this._solves);
-
-  /// The solve times by level, then by calendar date as `yyyy-mm-dd`.
-  final Map<BridgesLevel, Map<String, Duration>> _solves;
-
-  /// The time the first solve of the puzzle at [level] for the calendar date
-  /// of [date] took, or `null` if it has not been solved.
-  Duration? solveTime(BridgesLevel level, DateTime date) =>
-      _solves[level]?[formatCalendarDate(date)];
-
-  /// The days, at local midnight, with at least one solved puzzle.
-  Set<DateTime> get solvedDays => {
-    for (final dates in _solves.values)
-      for (final date in dates.keys) parseCalendarDate(date)!,
-  };
-
-  /// Returns the history with the puzzle at [level] for the calendar date of
-  /// [date] solved in [time], or this history if it already has that solve.
-  ///
-  /// The first solve stands, so starting over and solving again keeps its
-  /// time.
-  BridgesHistory withSolve(BridgesLevel level, DateTime date, Duration time) {
-    final dateKey = formatCalendarDate(date);
-    if (_solves[level]?.containsKey(dateKey) ?? false) {
-      return this;
-    }
-    return BridgesHistory._({
-      ..._solves,
-      level: {...?_solves[level], dateKey: time},
-    });
-  }
-}
-
-/// Writes [history] as JSON in the current [bridgesSaveFormat].
-String encodeBridgesHistory(BridgesHistory history) => jsonEncode({
-  'format': bridgesSaveFormat,
-  'solved': {
-    for (final level in BridgesLevel.values)
-      if (history._solves[level] case final dates? when dates.isNotEmpty)
-        level.name: {
-          for (final date in dates.keys.toList()..sort())
-            date: dates[date]!.inMilliseconds,
-        },
-  },
-});
-
-/// Reads a history written by [encodeBridgesHistory], or returns `null` if
-/// [text] is damaged or of another format version.
-///
-/// A damaged entry is skipped rather than losing the whole history.
-BridgesHistory? decodeBridgesHistory(String text) {
-  if (_decodeJson(text) case {
-    'format': bridgesSaveFormat,
-    'solved': final Map<Object?, Object?> solved,
-  }) {
-    final solves = <BridgesLevel, Map<String, Duration>>{};
-    for (final MapEntry(key: levelName, value: dates) in solved.entries) {
-      final level = _levels[levelName];
-      if (level == null || dates is! Map<Object?, Object?>) {
-        continue;
-      }
-      for (final MapEntry(key: dateText, value: milliseconds)
-          in dates.entries) {
-        final date = dateText is String ? parseCalendarDate(dateText) : null;
-        if (date != null && milliseconds is int && milliseconds >= 0) {
-          (solves[level] ??= {})[formatCalendarDate(date)] = Duration(
-            milliseconds: milliseconds,
-          );
-        }
-      }
-    }
-    return BridgesHistory._(solves);
   }
   return null;
 }

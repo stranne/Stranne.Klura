@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klura/app/klura_settings.dart';
+import 'package:klura/core/grid.dart';
 import 'package:klura/core/local_store.dart';
 import 'package:klura/puzzles/bridges/bridges_board.dart';
 import 'package:klura/puzzles/bridges/bridges_controller.dart';

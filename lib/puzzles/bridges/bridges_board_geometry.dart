@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:klura/core/grid.dart';
 import 'package:klura/puzzles/bridges/logic/bridge_arrangement.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_puzzle.dart';
 import 'package:klura/puzzles/bridges/logic/geometry.dart';

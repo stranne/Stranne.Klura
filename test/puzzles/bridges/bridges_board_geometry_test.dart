@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:klura/core/grid.dart';
 import 'package:klura/puzzles/bridges/bridges_board_geometry.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_text.dart';
 import 'package:klura/puzzles/bridges/logic/geometry.dart';

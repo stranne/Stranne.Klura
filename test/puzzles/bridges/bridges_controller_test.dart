@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:klura/core/grid.dart';
 import 'package:klura/core/local_store.dart';
 import 'package:klura/puzzles/bridges/bridges_controller.dart';
 import 'package:klura/puzzles/bridges/bridges_daily_games.dart';

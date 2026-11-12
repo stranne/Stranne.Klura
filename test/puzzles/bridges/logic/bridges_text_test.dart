@@ -1,3 +1,4 @@
+import 'package:klura/core/grid.dart';
 import 'package:klura/puzzles/bridges/logic/bridge_arrangement.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_puzzle.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_text.dart';

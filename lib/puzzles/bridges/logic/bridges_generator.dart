@@ -1,4 +1,5 @@
 import 'package:klura/core/daily_seed.dart';
+import 'package:klura/core/grid.dart';
 import 'package:klura/core/seeded_random.dart';
 import 'package:klura/puzzles/bridges/logic/bridge_arrangement.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_puzzle.dart';

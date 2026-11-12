@@ -1,4 +1,5 @@
 import 'package:klura/core/local_store.dart';
+import 'package:klura/core/solve_history.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_save.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_storage.dart';
@@ -98,11 +99,14 @@ void main() {
     test('is empty when missing or damaged', () {
       final damaged = MemoryLocalStore({BridgesStorage.historyKey: 'oops'});
 
-      expect(
-        BridgesStorage(MemoryLocalStore()).loadHistory().solvedDays,
-        isEmpty,
-      );
-      expect(BridgesStorage(damaged).loadHistory().solvedDays, isEmpty);
+      for (final store in [MemoryLocalStore(), damaged]) {
+        final history = BridgesStorage(store).loadHistory();
+
+        expect(
+          encodeSolveHistory(history, BridgesLevel.values),
+          '{"format":1,"solved":{}}',
+        );
+      }
     });
 
     test('records the first solve of each puzzle', () {
@@ -117,12 +121,16 @@ void main() {
         const Duration(minutes: 7),
       );
 
-      expect(storage.loadHistory().solvedDays, {today, yesterday});
-      expect(history.solvedDays, {today, yesterday});
-      expect(
-        storage.loadHistory().solveTime(BridgesLevel.normal, today),
-        const Duration(seconds: 80),
-      );
+      for (final read in [history, storage.loadHistory()]) {
+        expect(
+          read.solveTime(BridgesLevel.normal, today),
+          const Duration(seconds: 80),
+        );
+        expect(
+          read.solveTime(BridgesLevel.hard, yesterday),
+          const Duration(minutes: 7),
+        );
+      }
     });
 
     test('keeps solves another tab recorded meanwhile', () {
@@ -137,7 +145,8 @@ void main() {
         Duration.zero,
       );
 
-      expect(history.solvedDays, {yesterday, today});
+      expect(history.solveTime(BridgesLevel.normal, yesterday), Duration.zero);
+      expect(history.solveTime(BridgesLevel.hard, today), Duration.zero);
     });
   });
 
@@ -169,7 +178,7 @@ void main() {
           BridgesStorage.historyKey,
         ]),
       );
-      expect(history.solvedDays, {twoDaysAgo});
+      expect(history.solveTime(BridgesLevel.hard, yesterday), isNull);
       expect(
         storage.loadHistory().solveTime(BridgesLevel.normal, twoDaysAgo),
         const Duration(seconds: 65),

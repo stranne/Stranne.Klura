@@ -1,3 +1,4 @@
+import 'package:klura/core/grid.dart';
 import 'package:klura/puzzles/bridges/logic/geometry.dart';
 import 'package:meta/meta.dart';
 

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:klura/core/grid.dart';
 import 'package:klura/puzzles/bridges/bridges_board_geometry.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_game.dart';
 import 'package:klura/puzzles/bridges/logic/geometry.dart';

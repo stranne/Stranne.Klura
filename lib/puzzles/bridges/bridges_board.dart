@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
+import 'package:klura/core/grid.dart';
 import 'package:klura/puzzles/bridges/bridges_board_geometry.dart';
 import 'package:klura/puzzles/bridges/bridges_board_painter.dart';
 import 'package:klura/puzzles/bridges/bridges_controller.dart';

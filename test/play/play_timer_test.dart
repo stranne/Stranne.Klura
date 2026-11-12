@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:klura/puzzles/bridges/play_timer.dart';
+import 'package:klura/play/play_timer.dart';
 
 void main() {
   var now = Duration.zero;
