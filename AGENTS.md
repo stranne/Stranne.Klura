@@ -15,6 +15,11 @@ Bridges and Tents; read [docs/bridges.md](docs/bridges.md) or
   framework. Add shared abstractions only when a second puzzle needs them.
 - Create original puzzles, visuals and text. Do not copy puzzles, art or
   layouts from published puzzle apps.
+- Before proposing or adding a puzzle, read
+  [docs/mental-gym.md](docs/mental-gym.md): a new puzzle must mainly train a
+  skill that no existing puzzle does.
+- Never claim that Klura improves memory or thinking, or that it slows
+  decline or protects against dementia.
 
 ## Code
 

@@ -11,6 +11,9 @@ There are two puzzles so far:
 - [Tents](docs/tents.md): give every tree a tent of its own beside it, keep
   tents from touching and match the number of tents in each row and column.
 
+[Mental gym](docs/mental-gym.md) compares the skills each puzzle trains and
+sets the rule for choosing the next one.
+
 ## Run
 
 ```sh
@@ -162,6 +165,6 @@ dart run tool/generate_icons.dart
 | `fonts/` | The Roboto font with its license, bundled so the web engine does not download it |
 | `design/icon/` | SVG sources for the icons |
 | `tool/` | Development scripts: the icon generator and the benchmark of each puzzle |
-| `docs/` | Puzzle rules and design notes |
+| `docs/` | Puzzle rules and design notes, and the skills each puzzle trains |
 | `.github/workflows/` | CI: the checks, and the build and deploy to GitHub Pages |
 | `.vscode/` | VS Code launch configurations, tasks and the recommended extension |
