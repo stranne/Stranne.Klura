@@ -240,15 +240,20 @@ day, and the home screen shows the new day once the player closes it.
 
 - **Drag** from an island toward a neighbor and let go to move the bridges
   between them one step through the cycle one, two, none. The drag only has
-  to point the way: once it has moved about half a cell, its main direction
-  picks the nearest island that way, and a faint preview shows the result
-  while the finger is still down. Dragging back to the island cancels. A drag
-  may start up to three quarters of a cell from an island's center, which
-  helps on a phone where a finger hides the island.
+  to point the way: once it has moved about a third of a cell, its main
+  direction picks the nearest island that way, and a faint preview shows the
+  result while the finger is still down. Dragging back to the island cancels.
+  A drag may start up to three quarters of a cell from an island's center,
+  which helps on a phone where a finger hides the island, unless the press is
+  nearer to a bridge that passes beside that island. Such a press is about
+  the bridge, so it never starts a drag across it.
 - **Tap** a bridge to move it through the same cycle. Tapping the empty gap
   between two facing islands builds the first bridge, unless two possible
   bridges cross right there, where the tap is ambiguous and does nothing. A
   tap where a bridge lies always changes that bridge. Tapping an island does
+  nothing. A press that moves less than a third of a cell before it lifts
+  counts as a tap where it went down. Flutter turns a mouse press that moves
+  two pixels into a drag, so without this a click that slipped would do
   nothing.
 - **Keys**: the board is a single tab stop. The arrow keys move a focus ring
   to the neighbor a bridge would reach, or else to the nearest island that

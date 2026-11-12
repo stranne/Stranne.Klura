@@ -62,6 +62,28 @@ final class BridgesBoardGeometry {
     return nearest;
   }
 
+  /// The island a drag pressed at [point] starts from, if any.
+  ///
+  /// The press may be up to three quarters of a cell from the island's
+  /// center, which helps where a finger hides the island, unless it is nearer
+  /// to a bridge that passes beside the island. Such a press is about that
+  /// bridge, so it never starts a drag that would cross it.
+  Island? dragIslandNear(Offset point, BridgeArrangement arrangement) {
+    final island = islandNear(point);
+    if (island == null) {
+      return null;
+    }
+    final bridge = _candidatesNear(
+      point,
+    ).where((candidate) => arrangement[candidate.connection] > 0).firstOrNull;
+    if (bridge != null &&
+        !bridge.connection.touches(island.position) &&
+        bridge.distance < (centerOf(island.position) - point).distance) {
+      return null;
+    }
+    return island;
+  }
+
   /// The connection a tap at [point] means, or `null` if it is unclear.
   ///
   /// A tap counts within half a cell of where a bridge runs. A connection
@@ -69,14 +91,7 @@ final class BridgesBoardGeometry {
   /// connection crosses it always changes the bridge. Between two empty
   /// connections the tap must be clearly nearer to one of them.
   Connection? connectionNear(Offset point, BridgeArrangement arrangement) {
-    final reach = cellSize * 0.5;
-    final candidates = [
-      for (final connection in puzzle.connections)
-        if (_distanceTo(connection, point) case final distance
-            when distance <= reach)
-          (connection: connection, distance: distance),
-    ]..sort((a, b) => a.distance.compareTo(b.distance));
-
+    final candidates = _candidatesNear(point);
     for (final candidate in candidates) {
       if (arrangement[candidate.connection] > 0) {
         return candidate.connection;
@@ -90,6 +105,19 @@ final class BridgesBoardGeometry {
       return null;
     }
     return candidates.first.connection;
+  }
+
+  /// Every connection within half a cell of [point], nearest first.
+  List<({Connection connection, double distance})> _candidatesNear(
+    Offset point,
+  ) {
+    final reach = cellSize * 0.5;
+    return [
+      for (final connection in puzzle.connections)
+        if (_distanceTo(connection, point) case final distance
+            when distance <= reach)
+          (connection: connection, distance: distance),
+    ]..sort((a, b) => a.distance.compareTo(b.distance));
   }
 
   double _distanceTo(Connection connection, Offset point) {

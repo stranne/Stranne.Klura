@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:klura/app/klura_settings.dart';
@@ -200,6 +201,83 @@ void main() {
 
     expect(controller.game.arrangement[across], 2);
     expect(controller.game.arrangement[down], 0);
+  });
+
+  testWidgets('a click that slips a little still counts', (tester) async {
+    final controller = await pumpGame(tester, crossing);
+    final gap = centerOf(tester, controller, const Position(1, 2));
+
+    // A mouse turns a press into a drag after two pixels.
+    final gesture = await tester.startGesture(
+      gap,
+      kind: PointerDeviceKind.mouse,
+    );
+    await gesture.moveBy(const Offset(3, 2));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(controller.game.arrangement[across], 1);
+  });
+
+  testWidgets('a press on a bridge beside an island is about the bridge', (
+    tester,
+  ) async {
+    // The bridge down column 1 passes right beside the island at (0, 2),
+    // whose bridge to the right would cross it.
+    final controller = await pumpGame(tester, '''
+.1...
+.....
+1...1
+.....
+.1...
+''');
+    final beside = Connection(const Position(1, 0), const Position(1, 4));
+    final blocked = Connection(const Position(0, 2), const Position(4, 2));
+    controller.cycleBridges(beside);
+    await tester.pumpAndSettle();
+    final cell = cellSizeOf(tester, controller);
+    // On the bridge's left edge, within reach of the island for a drag.
+    final press =
+        centerOf(tester, controller, const Position(1, 2)) -
+        Offset(cell * 0.27, 0);
+
+    await tester.dragFrom(press, Offset(cell * 1.2, 0));
+    await tester.pumpAndSettle();
+
+    expect(controller.game.arrangement[blocked], 0);
+    expect(controller.game.arrangement[beside], 1);
+    expect(
+      find.textContaining('Bridges cannot cross each other.'),
+      findsNothing,
+    );
+
+    final gesture = await tester.startGesture(
+      press,
+      kind: PointerDeviceKind.mouse,
+    );
+    await gesture.moveBy(const Offset(3, 0));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(controller.game.arrangement[beside], 2);
+  });
+
+  testWidgets('a press on the bridge an island leaves from drags from it', (
+    tester,
+  ) async {
+    final controller = await pumpGame(tester, crossing);
+    controller.cycleBridges(across);
+    await tester.pumpAndSettle();
+    final cell = cellSizeOf(tester, controller);
+    // On the bridge, beside the island at (0, 2) that it leaves from.
+    final press =
+        centerOf(tester, controller, const Position(0, 2)) +
+        Offset(cell * 0.6, 0);
+
+    await tester.dragFrom(press, Offset(cell * 1.2, 0));
+    await tester.pumpAndSettle();
+
+    expect(controller.game.arrangement[across], 2);
   });
 
   testWidgets('undo and start over change the board', (tester) async {

@@ -35,7 +35,8 @@ class BridgesBoard extends StatefulWidget {
 /// Cells never grow beyond this, so the board stays calm on a large screen.
 const double _maxCellSize = 60;
 
-/// How far a drag must move, in cells, before it aims at a neighbor.
+/// How far a drag must move, in cells, before it aims at a neighbor. A press
+/// that never moves this far counts as a tap where it went down.
 const double _aimDistance = 0.35;
 
 /// How strongly the soft halo around an overfull island or a loop shows.
@@ -82,7 +83,11 @@ class _BridgesBoardState extends State<BridgesBoard>
 
   /// The island a move in progress grows its bridge from, if any.
   Position? _growFrom;
-  Offset _dragStart = Offset.zero;
+
+  /// Where the press in progress went down, and whether it has since moved
+  /// far enough to be a drag rather than a tap.
+  Offset _pressStart = Offset.zero;
+  bool _pressMovedAway = false;
   BridgesBoardGeometry? _geometry;
   bool _reduceMotion = false;
 
@@ -201,12 +206,16 @@ class _BridgesBoardState extends State<BridgesBoard>
 
   void _onPanDown(DragDownDetails details) {
     _focusNode.requestFocus();
+    _pressStart = details.localPosition;
+    _pressMovedAway = false;
     final geometry = _geometry;
     if (geometry == null || _game.isSolved) {
       return;
     }
-    final island = geometry.islandNear(details.localPosition);
-    _dragStart = details.localPosition;
+    final island = geometry.dragIslandNear(
+      details.localPosition,
+      _game.arrangement,
+    );
     _hover.value = null;
     _drag.value = island == null
         ? null
@@ -217,22 +226,31 @@ class _BridgesBoardState extends State<BridgesBoard>
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
-    final drag = _drag.value;
     final geometry = _geometry;
-    if (drag == null || geometry == null) {
+    if (geometry == null) {
       return;
     }
-    final direction = _aim(
-      details.localPosition - _dragStart,
-      geometry.cellSize,
-      drag.direction,
-    );
+    final movement = details.localPosition - _pressStart;
+    if (movement.distance >= geometry.cellSize * _aimDistance) {
+      _pressMovedAway = true;
+    }
+    final drag = _drag.value;
+    if (drag == null) {
+      return;
+    }
+    final direction = _aim(movement, geometry.cellSize, drag.direction);
     _drag.value = (island: drag.island, direction: direction);
   }
 
   void _onPanEnd(DragEndDetails details) {
     final drag = _drag.value;
     _drag.value = null;
+    // A click or tap that slips a little turns into a drag, which should
+    // still act as the tap.
+    if (!_pressMovedAway) {
+      _tapAt(_pressStart);
+      return;
+    }
     if (drag == null) {
       return;
     }
@@ -247,12 +265,14 @@ class _BridgesBoardState extends State<BridgesBoard>
 
   void _onPanCancel() => _drag.value = null;
 
-  void _onTapUp(TapUpDetails details) {
+  void _onTapUp(TapUpDetails details) => _tapAt(details.localPosition);
+
+  /// Cycles the bridges a tap at [point] means, if any.
+  void _tapAt(Offset point) {
     final geometry = _geometry;
     if (geometry == null || _game.isSolved) {
       return;
     }
-    final point = details.localPosition;
     if (geometry.islandNear(point, reach: 0.45) != null) {
       return;
     }
