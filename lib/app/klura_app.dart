@@ -5,6 +5,7 @@ import 'package:klura/app/klura_theme.dart';
 import 'package:klura/core/calendar_date.dart';
 import 'package:klura/core/local_store.dart';
 import 'package:klura/home/home_screen.dart';
+import 'package:klura/play/puzzle_sound.dart';
 import 'package:klura/puzzles/bridges/bridges_daily_games.dart';
 import 'package:klura/puzzles/bridges/bridges_screen.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
@@ -16,10 +17,18 @@ import 'package:klura/puzzles/tents/tents_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
 class KluraApp extends StatefulWidget {
-  const KluraApp({required this.store, this.clock = DateTime.now, super.key});
+  const KluraApp({
+    required this.store,
+    this.sound = const SilentSoundOutput(),
+    this.clock = DateTime.now,
+    super.key,
+  });
 
   /// Where progress and settings are saved. It is read once.
   final LocalStore store;
+
+  /// Where the sounds of moves are heard, while the player has them on.
+  final SoundOutput sound;
 
   /// Reads the local date and time, whose date picks the daily puzzles.
   ///
@@ -145,6 +154,7 @@ class _KluraAppState extends State<KluraApp> {
               key: ObjectKey(controller),
               controller: controller,
               settings: _settings,
+              sound: widget.sound,
             );
           },
         );
@@ -161,6 +171,7 @@ class _KluraAppState extends State<KluraApp> {
               key: ObjectKey(controller),
               controller: controller,
               settings: _settings,
+              sound: widget.sound,
             );
           },
         );

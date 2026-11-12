@@ -1,5 +1,6 @@
 import 'package:klura/app/klura_settings.dart';
 import 'package:klura/play/puzzle_screen.dart';
+import 'package:klura/play/puzzle_sound.dart';
 import 'package:klura/puzzles/tents/logic/tents_game.dart';
 import 'package:klura/puzzles/tents/logic/tents_generator.dart';
 import 'package:klura/puzzles/tents/logic/tents_rules.dart';
@@ -16,21 +17,25 @@ String tentsLevelTitle(TentsLevel level) => switch (level) {
   TentsLevel.hard => 'Hard',
 };
 
-/// Plays one game of Tents: the board, the time played, undo and starting
-/// over.
+/// Plays one game of Tents: the board, the time played, the sounds of
+/// moves, undo and starting over.
 ///
 /// The game's timer runs while this screen is open and the app is in front.
 class TentsScreen extends StatelessWidget {
   const TentsScreen({
     required this.controller,
     required this.settings,
+    required this.sound,
     super.key,
   });
 
   final TentsController controller;
 
-  /// Whether to show the time played.
+  /// Whether to show the time played and play the sounds of moves.
   final KluraSettings settings;
+
+  /// Where the sounds of moves are heard.
+  final SoundOutput sound;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +43,9 @@ class TentsScreen extends StatelessWidget {
       title: 'Tents · ${tentsLevelTitle(controller.level)}',
       controller: controller,
       settings: settings,
-      board: (context, showNotice) => TentsBoard(controller: controller),
+      sound: sound,
+      board: (context, showNotice, playSound) =>
+          TentsBoard(controller: controller, onSound: playSound),
       problemIn: _problemIn,
       solvedDetail:
           'All ${controller.game.puzzle.trees.length} trees have a tent',

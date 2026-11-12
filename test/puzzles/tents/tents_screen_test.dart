@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:klura/app/klura_settings.dart';
 import 'package:klura/core/grid.dart';
 import 'package:klura/core/local_store.dart';
+import 'package:klura/play/puzzle_sound.dart';
 import 'package:klura/puzzles/tents/logic/tents_game.dart';
 import 'package:klura/puzzles/tents/logic/tents_generator.dart';
 import 'package:klura/puzzles/tents/logic/tents_marks.dart';
@@ -23,6 +24,7 @@ void main() {
 ''';
 
   late KluraSettings settings;
+  late _RecordedSounds sounds;
 
   Future<TentsController> pumpGame(
     WidgetTester tester,
@@ -39,6 +41,7 @@ void main() {
     addTearDown(controller.dispose);
     settings = KluraSettings(MemoryLocalStore());
     addTearDown(settings.dispose);
+    sounds = _RecordedSounds();
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -50,7 +53,11 @@ void main() {
             size: const Size(400, 800),
             disableAnimations: disableAnimations,
           ),
-          child: TentsScreen(controller: controller, settings: settings),
+          child: TentsScreen(
+            controller: controller,
+            settings: settings,
+            sound: sounds,
+          ),
         ),
       ),
     );
@@ -382,4 +389,72 @@ void main() {
     );
     expect(find.text('Placing tents'), findsOneWidget);
   });
+
+  group('sound', () {
+    testWidgets('each tap plays the sound of what the cell holds', (
+      tester,
+    ) async {
+      final controller = await pumpGame(tester, small);
+
+      await tapCell(tester, controller, const Position(0, 0));
+      await tapCell(tester, controller, const Position(0, 0));
+      await tapCell(tester, controller, const Position(0, 0));
+
+      expect(sounds.played, [
+        PuzzleSound.grass,
+        PuzzleSound.tent,
+        PuzzleSound.removed,
+      ]);
+    });
+
+    testWidgets('a drag plays one sound for its whole line', (tester) async {
+      final controller = await pumpGame(tester, small);
+      final start = centerOf(tester, controller, const Position(0, 1));
+      final end = centerOf(tester, controller, const Position(3, 1));
+
+      await tester.dragFrom(start, end - start);
+      await tester.pump();
+      await tester.dragFrom(start, end - start);
+      await tester.pump();
+
+      expect(controller.game.marks.grass, isEmpty);
+      expect(sounds.played, [PuzzleSound.grassLine, PuzzleSound.removed]);
+    });
+
+    testWidgets('the move that solves the puzzle chimes instead', (
+      tester,
+    ) async {
+      final controller = await pumpGame(tester, '''
+  0002
+1 ..T^
+0 ....
+1 ..T-
+''');
+
+      await tapCell(tester, controller, const Position(3, 2));
+
+      expect(controller.game.isSolved, isTrue);
+      expect(sounds.played, [PuzzleSound.solved]);
+    });
+
+    testWidgets('moving the focus stays silent', (tester) async {
+      final controller = await pumpGame(tester, small);
+      await tapCell(tester, controller, const Position(0, 0));
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pump();
+
+      expect(sounds.played, [PuzzleSound.grass, PuzzleSound.grass]);
+    });
+  });
+}
+
+/// Keeps every sound it is asked to play, in order.
+final class _RecordedSounds implements SoundOutput {
+  final List<PuzzleSound> played = [];
+
+  @override
+  void play(PuzzleSound sound) => played.add(sound);
 }

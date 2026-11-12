@@ -216,7 +216,7 @@ For example, the Normal puzzle of 2026-11-12 and its solution:
 The home screen lists today's Normal and Hard puzzles below Bridges, with
 how far each has come. They have their own routes, `#/tents/normal` and
 `#/tents/hard`. Generation, saving, the move to a new day, undo, start over,
-the timer and the solved panel work as for Bridges; see
+the timer, sound and the solved panel work as for Bridges; see
 [Playing](bridges.md#playing).
 
 ### Placing tents and grass
@@ -251,6 +251,10 @@ marked automatically.
   would have to share a tree, and rows or columns with too many tents.
 - When a move solves the puzzle, a wave spreads from that tent and lifts
   each tree and tent once. With reduced motion, the board skips it.
+- Each move makes a soft sound, as [for Bridges](bridges.md#sound): a faint
+  brush for grass, one longer brush for a line of grass, a brighter pluck
+  for a tent and a lower, falling note when a tent or a line of grass goes.
+  The move that solves the puzzle chimes instead.
 
 ### Accessibility
 

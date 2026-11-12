@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:klura/core/grid.dart';
+import 'package:klura/play/puzzle_sound.dart';
 import 'package:klura/puzzles/tents/logic/tents_game.dart';
 import 'package:klura/puzzles/tents/logic/tents_marks.dart';
 import 'package:klura/puzzles/tents/logic/tents_rules.dart';
@@ -21,9 +22,13 @@ import 'package:material_ui/material_ui.dart';
 /// between cells and Space or Enter changes one. The board fills the space
 /// it is given, keeping its cells square.
 class TentsBoard extends StatefulWidget {
-  const TentsBoard({required this.controller, super.key});
+  const TentsBoard({required this.controller, this.onSound, super.key});
 
   final TentsController controller;
+
+  /// Called with the sound of each move the player makes. Moving the focus
+  /// makes no sound.
+  final ValueSetter<PuzzleSound>? onSound;
 
   @override
   State<TentsBoard> createState() => _TentsBoardState();
@@ -181,6 +186,20 @@ class _TentsBoardState extends State<TentsBoard> with TickerProviderStateMixin {
     _cursor = position;
     widget.controller.cycleMark(position);
     unawaited(HapticFeedback.selectionClick());
+    widget.onSound?.call(_soundOfMove(position));
+  }
+
+  /// The sound of the move that has just changed [position]: the chime if
+  /// it solved the puzzle, since a solved board takes no moves.
+  PuzzleSound _soundOfMove(Position position) {
+    if (_game.isSolved) {
+      return PuzzleSound.solved;
+    }
+    return switch (_game.marks[position]) {
+      TentsMark.grass => PuzzleSound.grass,
+      TentsMark.tent => PuzzleSound.tent,
+      null => PuzzleSound.removed,
+    };
   }
 
   void _onPanDown(DragDownDetails details) {
@@ -231,10 +250,13 @@ class _TentsBoardState extends State<TentsBoard> with TickerProviderStateMixin {
     if (drag == null || drag.cells.isEmpty || _game.isSolved) {
       return;
     }
+    // Grass is only a note, so a line of it never solves the puzzle.
     if (drag.clearing) {
       widget.controller.clearGrass(drag.cells);
+      widget.onSound?.call(PuzzleSound.removed);
     } else {
       widget.controller.fillGrass(drag.cells);
+      widget.onSound?.call(PuzzleSound.grassLine);
     }
     unawaited(HapticFeedback.selectionClick());
   }

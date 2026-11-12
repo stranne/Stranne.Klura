@@ -66,8 +66,9 @@ The logic lives in `lib/puzzles/bridges/logic/` and does not depend on
 Flutter. The screen that plays it lives beside it in `lib/puzzles/bridges/`.
 What every puzzle shares lives in `lib/core/` and `lib/play/`, as the
 [README](../README.md#layout) describes: grid positions, the solve history,
-the storage of daily games, the play timer, the controller base and the
-puzzle screen with its clock, status line, buttons and solved panel.
+the storage of daily games, the play timer, the sounds of moves, the
+controller base and the puzzle screen with its clock, sound button, status
+line, buttons and solved panel.
 
 | File | Responsibility |
 | --- | --- |
@@ -328,6 +329,40 @@ While it is hidden, the solved panel and the home screen show no times
 either, but the time still counts, so showing it again gives the true time.
 The choice is saved on the device and applies to every puzzle.
 
+### Sound
+
+Moves on the board make short, soft sounds that go with what the board
+shows. They matter most where a move cannot be felt: browsers vibrate only on
+Android, so on an iPhone or a computer the sound is the only confirmation
+besides the board itself.
+
+- A first bridge plucks one soft note, a second bridge two rising notes, and
+  removing bridges a lower, falling one, so a slip is heard without looking.
+- A bridge that would cross another gives a muted low knock with the shake.
+- The move that solves the puzzle plays a rising chime of five notes
+  instead, in step with the wave.
+
+Only moves make sounds. Undo, start over, the buttons, hovering and moving
+the keyboard focus stay silent: a screen reader already speaks each focus
+move, and arrow keys pressed in quick bursts would chatter. Keyboard moves
+sound like taps. There is no music, and every sound but the chime fades
+within 200 ms, before a next move could begin.
+
+The speaker in the app bar turns sounds off, and on again, for every puzzle.
+The choice is saved on the device, like the timer's. Sounds are on until the
+player turns them off, and none plays before the player's first move.
+
+The browser makes the sounds with Web Audio from notes of one pentatonic
+scale and a little filtered noise, so there are no sound files to download or
+license. `PuzzleSound` in `lib/play/puzzle_sound.dart` describes each sound
+and `lib/app/browser_sound.dart` plays them. The audio opens with the first
+sound, which always answers a tap or a key, since browsers allow a page to
+make sound only once the player has used it. Where the browser has the Audio
+Session API, so far only Safari, the app asks for an `ambient` session: the
+sounds mix with music the player is listening to instead of pausing it, and
+an iPhone's silent switch mutes them. The audio rests while the page is
+hidden. On the Dart VM, as in tests, the app is silent.
+
 ### No streak
 
 The app does not count days in a row. A daily puzzle should be an
@@ -368,6 +403,7 @@ one storage, so every key starts with `klura.`:
 | `klura.bridges.<level>.<date>` | The game at that level on that day, for example `klura.bridges.normal.2026-11-12` |
 | `klura.bridges.history` | The days each level was solved, with the time the first solve took |
 | `klura.showTimer` | `false` once the player has hidden the timer |
+| `klura.playSounds` | `false` once the player has turned sounds off |
 
 ### Save format
 
@@ -458,3 +494,6 @@ version leaves room to add it.
   An idle limit could pause it.
 - The interaction has been tried in Chrome with phone emulation. It still
   needs a session on a real phone.
+- The sounds were checked in Chrome by what the board schedules, not by ear.
+  They need listening and tuning on a real phone, and an iPhone should
+  confirm that they mix with music and follow the silent switch.

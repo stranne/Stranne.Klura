@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:klura/core/grid.dart';
+import 'package:klura/play/puzzle_sound.dart';
 import 'package:klura/puzzles/bridges/bridges_board_geometry.dart';
 import 'package:klura/puzzles/bridges/bridges_board_painter.dart';
 import 'package:klura/puzzles/bridges/bridges_controller.dart';
@@ -22,12 +23,21 @@ import 'package:material_ui/material_ui.dart';
 /// diagonally and Shift with an arrow cycles the bridges in that direction.
 /// The board fills the space it is given, keeping its cells square.
 class BridgesBoard extends StatefulWidget {
-  const BridgesBoard({required this.controller, this.onBlocked, super.key});
+  const BridgesBoard({
+    required this.controller,
+    this.onBlocked,
+    this.onSound,
+    super.key,
+  });
 
   final BridgesController controller;
 
   /// Called when the player tries a bridge that would cross another.
   final VoidCallback? onBlocked;
+
+  /// Called with the sound of each move the player makes, and of a bridge
+  /// that would cross another. Moving the focus makes no sound.
+  final ValueSetter<PuzzleSound>? onSound;
 
   @override
   State<BridgesBoard> createState() => _BridgesBoardState();
@@ -197,13 +207,28 @@ class _BridgesBoardState extends State<BridgesBoard>
     _growFrom = null;
     if (blockers.isEmpty) {
       unawaited(HapticFeedback.selectionClick());
+      widget.onSound?.call(_soundOfMove(connection));
       return;
     }
 
     setState(() => _blocked = (attempt: connection, blockers: blockers));
     _play(_blockedAnimation);
     unawaited(HapticFeedback.mediumImpact());
+    widget.onSound?.call(PuzzleSound.blocked);
     widget.onBlocked?.call();
+  }
+
+  /// The sound of the move that has just changed [connection]: the chime if
+  /// it solved the puzzle, since a solved board takes no moves.
+  PuzzleSound _soundOfMove(Connection connection) {
+    if (_game.isSolved) {
+      return PuzzleSound.solved;
+    }
+    return switch (_game.arrangement[connection]) {
+      0 => PuzzleSound.removed,
+      1 => PuzzleSound.bridge,
+      _ => PuzzleSound.doubleBridge,
+    };
   }
 
   Connection? _connectionToward(Position island, Direction direction) {

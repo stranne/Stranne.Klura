@@ -127,10 +127,10 @@ dart run tool/generate_icons.dart
 
 | Path | Responsibility |
 | --- | --- |
-| `lib/app/` | App widget, routes, theme, settings and the browser's local storage |
+| `lib/app/` | App widget, routes, theme, settings, and the browser's local storage and audio |
 | `lib/home/` | Home screen listing today's puzzles and their progress |
 | `lib/core/` | Flutter-free helpers shared by puzzles: seeded random, daily seed keys, calendar dates, play times, grid positions, the game interface, the solve history, the storage of daily games and the `LocalStore` interface |
-| `lib/play/` | What every puzzle screen shares: the play timer, the controller base, the daily games of one puzzle and the puzzle screen with its clock, status line, buttons, solved panel and how-to-play sheet |
+| `lib/play/` | What every puzzle screen shares: the play timer, the sounds of moves, the controller base, the daily games of one puzzle and the puzzle screen with its clock, sound button, status line, buttons, solved panel and how-to-play sheet |
 | `lib/puzzles/<name>/` | One folder per puzzle type, Bridges and Tents: its screen, board, controller and daily games, with the Flutter-free rules, solver, generator, game state and save format in `logic/` |
 | `web/` | Web shell: loading screen, manifest and generated icons |
 | `design/icon/` | SVG sources for the icons |

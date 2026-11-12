@@ -1,5 +1,6 @@
 import 'package:klura/app/klura_settings.dart';
 import 'package:klura/play/puzzle_screen.dart';
+import 'package:klura/play/puzzle_sound.dart';
 import 'package:klura/puzzles/bridges/bridges_board.dart';
 import 'package:klura/puzzles/bridges/bridges_controller.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_game.dart';
@@ -17,20 +18,24 @@ String bridgesLevelTitle(BridgesLevel level) => switch (level) {
 };
 
 /// Plays one game of Bridges: the board, how far the player has come, the
-/// time played, undo and starting over.
+/// time played, the sounds of moves, undo and starting over.
 ///
 /// The game's timer runs while this screen is open and the app is in front.
 class BridgesScreen extends StatelessWidget {
   const BridgesScreen({
     required this.controller,
     required this.settings,
+    required this.sound,
     super.key,
   });
 
   final BridgesController controller;
 
-  /// Whether to show the time played.
+  /// Whether to show the time played and play the sounds of moves.
   final KluraSettings settings;
+
+  /// Where the sounds of moves are heard.
+  final SoundOutput sound;
 
   @override
   Widget build(BuildContext context) {
@@ -38,12 +43,14 @@ class BridgesScreen extends StatelessWidget {
       title: 'Bridges · ${bridgesLevelTitle(controller.level)}',
       controller: controller,
       settings: settings,
-      board: (context, showNotice) => BridgesBoard(
+      sound: sound,
+      board: (context, showNotice, playSound) => BridgesBoard(
         controller: controller,
         onBlocked: () => showNotice((
           text: 'Bridges cannot cross each other.',
           isProblem: true,
         )),
+        onSound: playSound,
       ),
       problemIn: _problemIn,
       solvedDetail:

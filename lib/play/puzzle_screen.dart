@@ -6,16 +6,19 @@ import 'package:klura/core/play_time.dart';
 import 'package:klura/core/puzzle_game.dart';
 import 'package:klura/play/play_timer.dart';
 import 'package:klura/play/puzzle_controller.dart';
+import 'package:klura/play/puzzle_sound.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// A short message in the status line, marked when it reports a problem.
 typedef PuzzleNotice = ({String text, bool isProblem});
 
 /// Builds a puzzle's board, which may show a short [PuzzleNotice] in the
-/// status line through `showNotice`.
+/// status line through `showNotice` and play the [PuzzleSound] of a move
+/// through `playSound`, which stays silent while the player has sounds off.
 typedef PuzzleBoardBuilder = Widget Function(
   BuildContext context,
   ValueSetter<PuzzleNotice> showNotice,
+  ValueSetter<PuzzleSound> playSound,
 );
 
 /// What the how-to-play sheet of a puzzle says.
@@ -34,7 +37,8 @@ typedef HowToPlay = ({
 });
 
 /// Plays one game of the day with a game of type [G]: the board, the time
-/// played, a status line, undo and starting over, and how to play.
+/// played, the sounds of moves, a status line, undo and starting over, and
+/// how to play.
 ///
 /// The game's timer runs while this screen is open and the app is in front.
 /// Each puzzle supplies its board, the problems it names in the status line
@@ -44,6 +48,7 @@ class PuzzleScreen<G extends PuzzleGame> extends StatefulWidget {
     required this.title,
     required this.controller,
     required this.settings,
+    required this.sound,
     required this.board,
     required this.problemIn,
     required this.solvedDetail,
@@ -57,8 +62,11 @@ class PuzzleScreen<G extends PuzzleGame> extends StatefulWidget {
 
   final PuzzleController<Enum, G> controller;
 
-  /// Whether to show the time played.
+  /// Whether to show the time played and play the sounds of moves.
   final KluraSettings settings;
+
+  /// Where the sounds of moves are heard.
+  final SoundOutput sound;
 
   final PuzzleBoardBuilder board;
 
@@ -135,6 +143,12 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
     });
   }
 
+  void _playSound(PuzzleSound sound) {
+    if (widget.settings.playSounds) {
+      widget.sound.play(sound);
+    }
+  }
+
   void _clearNotice() {
     _noticeTimer?.cancel();
     if (_notice != null) {
@@ -166,9 +180,20 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
         autofocus: true,
         child: Scaffold(
           appBar: AppBar(
-            title: Text(widget.title),
+            // The back button already leaves room before the title. Without
+            // more spacing around it, a title such as `Bridges · Normal`
+            // fits beside the clock and two buttons on a phone 360 pixels
+            // wide. A narrower screen or a longer time shrinks the title a
+            // little rather than cutting off the level.
+            titleSpacing: 0,
+            title: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(widget.title),
+            ),
             actions: [
               _PlayClock(controller: _controller, settings: widget.settings),
+              _SoundButton(settings: widget.settings),
               IconButton(
                 tooltip: 'How to play',
                 icon: const Icon(Icons.help_outline),
@@ -185,7 +210,7 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
-                        child: widget.board(context, _showNotice),
+                        child: widget.board(context, _showNotice, _playSound),
                       ),
                     ),
                     ListenableBuilder(
@@ -542,7 +567,10 @@ class _HowToPlaySheet extends StatelessWidget {
             const SizedBox(height: 8),
             ...howToPlay.controls,
             const SizedBox(height: 16),
-            Text('Saving and time', style: theme.textTheme.titleMedium),
+            Text(
+              'Saving, time and sound',
+              style: theme.textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             HowToPlayPoint(
               text:
@@ -553,6 +581,11 @@ class _HowToPlaySheet extends StatelessWidget {
               text:
                   'The clock counts only the time you spend on the puzzle and '
                   'stops when you solve it. Tap it to hide it.',
+            ),
+            const HowToPlayPoint(
+              text:
+                  'Each move makes a soft sound. Tap the speaker to turn '
+                  'sounds off or on for every puzzle.',
             ),
           ],
         ),
@@ -698,6 +731,31 @@ class _PlayClockState extends State<_PlayClock> {
           style: style,
         ),
       ),
+    );
+  }
+}
+
+/// Turns the sounds of moves off and on again for every puzzle, its icon
+/// showing whether they are on.
+class _SoundButton extends StatelessWidget {
+  const _SoundButton({required this.settings});
+
+  final KluraSettings settings;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: settings,
+      builder: (context, _) {
+        final playSounds = settings.playSounds;
+        return IconButton(
+          tooltip: playSounds ? 'Turn sounds off' : 'Turn sounds on',
+          icon: Icon(
+            playSounds ? Icons.volume_up_outlined : Icons.volume_off_outlined,
+          ),
+          onPressed: () => settings.playSounds = !playSounds,
+        );
+      },
     );
   }
 }

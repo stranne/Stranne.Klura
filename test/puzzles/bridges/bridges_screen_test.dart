@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:klura/app/klura_settings.dart';
 import 'package:klura/core/grid.dart';
 import 'package:klura/core/local_store.dart';
+import 'package:klura/play/puzzle_sound.dart';
 import 'package:klura/puzzles/bridges/bridges_board.dart';
 import 'package:klura/puzzles/bridges/bridges_controller.dart';
 import 'package:klura/puzzles/bridges/bridges_screen.dart';
@@ -38,6 +39,7 @@ void main() {
   var now = Duration.zero;
   late LocalStore store;
   late KluraSettings settings;
+  late _RecordedSounds sounds;
 
   Future<BridgesController> pumpGame(
     WidgetTester tester,
@@ -56,6 +58,7 @@ void main() {
     store = MemoryLocalStore();
     settings = KluraSettings(store);
     addTearDown(settings.dispose);
+    sounds = _RecordedSounds();
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -67,7 +70,11 @@ void main() {
             size: const Size(400, 800),
             disableAnimations: disableAnimations,
           ),
-          child: BridgesScreen(controller: controller, settings: settings),
+          child: BridgesScreen(
+            controller: controller,
+            settings: settings,
+            sound: sounds,
+          ),
         ),
       ),
     );
@@ -644,4 +651,105 @@ void main() {
       expect(find.textContaining('2:30'), findsNothing);
     });
   });
+
+  group('sound', () {
+    testWidgets('each move plays the sound of the bridges it leaves', (
+      tester,
+    ) async {
+      final controller = await pumpGame(tester, crossing);
+      final gap = centerOf(tester, controller, const Position(1, 2));
+
+      await tester.tapAt(gap);
+      await tester.tapAt(gap);
+      await tester.tapAt(gap);
+      await tester.pumpAndSettle();
+
+      expect(sounds.played, [
+        PuzzleSound.bridge,
+        PuzzleSound.doubleBridge,
+        PuzzleSound.removed,
+      ]);
+    });
+
+    testWidgets('a bridge that would cross another knocks', (tester) async {
+      final controller = await pumpGame(tester, crossing);
+      controller.cycleBridges(across);
+      await tester.pumpAndSettle();
+      final cell = cellSizeOf(tester, controller);
+
+      await tester.dragFrom(
+        centerOf(tester, controller, const Position(2, 0)),
+        Offset(0, cell * 1.2),
+      );
+      await tester.pumpAndSettle();
+
+      expect(sounds.played, [PuzzleSound.blocked]);
+    });
+
+    testWidgets('the move that solves the puzzle chimes instead', (
+      tester,
+    ) async {
+      final controller = await pumpGame(tester, small);
+      controller
+        ..cycleBridges(top)
+        ..cycleBridges(top);
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(centerOf(tester, controller, const Position(0, 1)));
+      await tester.pumpAndSettle();
+
+      expect(controller.game.isSolved, isTrue);
+      expect(sounds.played, [PuzzleSound.solved]);
+    });
+
+    testWidgets('undo, start over and moving the focus stay silent', (
+      tester,
+    ) async {
+      final controller = await pumpGame(tester, small);
+      await tester.tapAt(centerOf(tester, controller, const Position(1, 0)));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Start over').hitTestable());
+      await tester.tap(find.text('Undo'));
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pumpAndSettle();
+
+      expect(controller.game.arrangement, BridgeArrangement({top: 1}));
+      expect(sounds.played, [PuzzleSound.bridge]);
+    });
+
+    testWidgets('the speaker turns sounds off and on for every puzzle', (
+      tester,
+    ) async {
+      final controller = await pumpGame(tester, crossing);
+      final gap = centerOf(tester, controller, const Position(1, 2));
+      expect(settings.playSounds, isTrue);
+
+      await tester.tap(find.byTooltip('Turn sounds off'));
+      await tester.pump();
+      await tester.tapAt(gap);
+      await tester.pumpAndSettle();
+
+      expect(controller.game.arrangement[across], 1);
+      expect(sounds.played, isEmpty);
+      expect(KluraSettings(store).playSounds, isFalse);
+
+      await tester.tap(find.byTooltip('Turn sounds on'));
+      await tester.pump();
+      await tester.tapAt(gap);
+      await tester.pumpAndSettle();
+
+      expect(sounds.played, [PuzzleSound.doubleBridge]);
+      expect(KluraSettings(store).playSounds, isTrue);
+    });
+  });
+}
+
+/// Keeps every sound it is asked to play, in order.
+final class _RecordedSounds implements SoundOutput {
+  final List<PuzzleSound> played = [];
+
+  @override
+  void play(PuzzleSound sound) => played.add(sound);
 }
