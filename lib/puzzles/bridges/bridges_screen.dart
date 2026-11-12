@@ -118,8 +118,9 @@ const HowToPlay _howToPlay = (
     ),
     HowToPlayPoint(
       text:
-          'With a keyboard, the arrow keys move between islands, '
-          'Shift and an arrow builds a bridge, and Ctrl and Z undoes.',
+          'With a keyboard, the arrow keys move between islands, and two '
+          'arrows pressed together move diagonally. Shift and an arrow '
+          'builds a bridge, and Ctrl and Z undoes.',
     ),
   ],
   marksName: 'bridges',

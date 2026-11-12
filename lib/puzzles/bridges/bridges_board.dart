@@ -18,9 +18,9 @@ import 'package:material_ui/material_ui.dart';
 ///
 /// Drag from an island toward a neighbor to cycle the bridges between them,
 /// or tap a bridge, or the gap where one can go, to do the same. With the
-/// keyboard, the arrow keys move between islands and Shift with an arrow
-/// cycles the bridges in that direction. The board fills the space it is
-/// given, keeping its cells square.
+/// keyboard, the arrow keys move between islands, two arrows together move
+/// diagonally and Shift with an arrow cycles the bridges in that direction.
+/// The board fills the space it is given, keeping its cells square.
 class BridgesBoard extends StatefulWidget {
   const BridgesBoard({required this.controller, this.onBlocked, super.key});
 
@@ -82,6 +82,11 @@ class _BridgesBoardState extends State<BridgesBoard>
   Position? _cursor;
   bool _showFocus = false;
 
+  /// The last move of the cursor by a single arrow: its key and the island
+  /// it left, so that a second arrow pressed with it can move diagonally
+  /// from there instead.
+  ({LogicalKeyboardKey key, Position from})? _step;
+
   /// The island a move in progress grows its bridge from, if any.
   Position? _growFrom;
 
@@ -114,6 +119,7 @@ class _BridgesBoardState extends State<BridgesBoard>
       _blocked = null;
       _solveWave = null;
       _cursor = null;
+      _step = null;
     }
   }
 
@@ -223,6 +229,7 @@ class _BridgesBoardState extends State<BridgesBoard>
         : (island: island.position, direction: null);
     if (island != null) {
       _cursor = island.position;
+      _step = null;
     }
   }
 
@@ -314,34 +321,75 @@ class _BridgesBoardState extends State<BridgesBoard>
       return KeyEventResult.ignored;
     }
 
-    final cursor = _cursor ?? _puzzle.islands.first.position;
+    final cursor = _cursorOrFirst;
     if (HardwareKeyboard.instance.isShiftPressed) {
+      _step = null;
       final connection = _connectionToward(cursor, direction);
       if (event is KeyDownEvent && connection != null && !_game.isSolved) {
         _cycle(connection, growFrom: cursor);
       }
-    } else {
-      final next = _islandToward(cursor, direction);
-      setState(() => _cursor = next ?? cursor);
+      return KeyEventResult.handled;
+    }
+
+    final held = _arrowHeldAcross(direction);
+    if (held == null) {
+      final next = _islandToward(cursor, direction) ?? cursor;
+      _step = (key: event.logicalKey, from: cursor);
+      setState(() => _cursor = next);
+      return KeyEventResult.handled;
+    }
+
+    // Two arrows pressed together move diagonally. The arrow that went down
+    // first has already stepped, so the diagonal starts where that step
+    // began. Without an island that way, the step stays.
+    final (heldKey, heldDirection) = held;
+    final step = _step;
+    final from = step != null && step.key == heldKey ? step.from : cursor;
+    final next = _nearestIsland(
+      from,
+      direction.dx + heldDirection.dx,
+      direction.dy + heldDirection.dy,
+    );
+    if (next != null) {
+      _step = null;
+      setState(() => _cursor = next);
     }
     return KeyEventResult.handled;
   }
 
+  /// An arrow key held down at right angles to [direction], if any.
+  (LogicalKeyboardKey, Direction)? _arrowHeldAcross(Direction direction) {
+    for (final key in HardwareKeyboard.instance.logicalKeysPressed) {
+      if (_arrowDirections[key] case final held?
+          when held.isHorizontal != direction.isHorizontal) {
+        return (key, held);
+      }
+    }
+    return null;
+  }
+
   /// The island the arrow in [direction] moves to from [from]: the neighbor a
   /// bridge would reach, or else the nearest island that way.
-  Position? _islandToward(Position from, Direction direction) {
-    if (_puzzle.neighbor(from, direction) case final neighbor?) {
-      return neighbor.position;
-    }
+  Position? _islandToward(Position from, Direction direction) =>
+      _puzzle.neighbor(from, direction)?.position ??
+      _nearestIsland(from, direction.dx, direction.dy);
+
+  /// The island nearest the line from [from] along the step ([stepX],
+  /// [stepY]), straight or diagonal, among those ahead of [from] on each
+  /// axis the step moves along. Distance across the line counts double, so
+  /// an island close to the line wins over a nearer one far off it.
+  Position? _nearestIsland(Position from, int stepX, int stepY) {
     Position? best;
     var bestScore = 0;
     for (final island in _puzzle.islands) {
       final dx = island.position.x - from.x;
       final dy = island.position.y - from.y;
-      final along = dx * direction.dx + dy * direction.dy;
-      final across = (dx * direction.dy - dy * direction.dx).abs();
+      final ahead =
+          (stepX == 0 || dx * stepX > 0) && (stepY == 0 || dy * stepY > 0);
+      final along = dx * stepX + dy * stepY;
+      final across = (dx * stepY - dy * stepX).abs();
       final score = along + 2 * across;
-      if (along > 0 && (best == null || score < bestScore)) {
+      if (ahead && (best == null || score < bestScore)) {
         best = island.position;
         bestScore = score;
       }

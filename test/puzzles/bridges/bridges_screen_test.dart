@@ -402,6 +402,37 @@ void main() {
     expect(controller.game.arrangement, BridgeArrangement({top: 1}));
   });
 
+  testWidgets('two arrows pressed together move diagonally', (tester) async {
+    // The island in the middle lies diagonally from the first one, which
+    // has neighbors straight down and to the right. Down and then Right
+    // alone would reach the island at the right end of row 3.
+    final controller = await pumpGame(tester, '''
+1.1
+.2.
+1.1
+.1.
+''');
+    await tester.tapAt(centerOf(tester, controller, const Position(2, 3)));
+    await tester.pump();
+
+    // Down steps to the island below; Right while Down is held turns that
+    // step into one down and to the right from the first island.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pumpAndSettle();
+
+    expect(
+      controller.game.arrangement,
+      BridgeArrangement({
+        Connection(const Position(1, 1), const Position(1, 3)): 1,
+      }),
+    );
+  });
+
   testWidgets('a solved board gives up the focus until a start over', (
     tester,
   ) async {
