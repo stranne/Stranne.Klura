@@ -32,8 +32,8 @@ enum PuzzleSound {
     ),
   ]),
 
-  /// A bridge that would cross another: a muted low knock with the shake,
-  /// never a buzzer.
+  /// A bridge that would cross another, or a log pushed against another: a
+  /// muted low knock with the shake, never a buzzer.
   blocked([
     Pluck(
       196,
@@ -67,6 +67,44 @@ enum PuzzleSound {
       length: Duration(milliseconds: 130),
       overtone: 0.3,
       waveform: Waveform.triangle,
+    ),
+  ]),
+
+  /// A log of two cells slid along the water: a soft wooden tock with a
+  /// faint wash of water, far lower than the grass.
+  log([
+    Pluck(
+      _a4,
+      gain: 0.26,
+      length: Duration(milliseconds: 110),
+      glide: 0.92,
+      overtone: 0.1,
+      waveform: Waveform.triangle,
+    ),
+    Brush(
+      gain: 0.07,
+      length: Duration(milliseconds: 120),
+      frequency: 900,
+      glide: 0.7,
+    ),
+  ]),
+
+  /// A log of three cells: the same tock a fourth lower, so a heavier log
+  /// sounds heavier.
+  longLog([
+    Pluck(
+      _e4,
+      gain: 0.28,
+      length: Duration(milliseconds: 130),
+      glide: 0.92,
+      overtone: 0.1,
+      waveform: Waveform.triangle,
+    ),
+    Brush(
+      gain: 0.07,
+      length: Duration(milliseconds: 140),
+      frequency: 800,
+      glide: 0.7,
     ),
   ]),
 
@@ -189,6 +227,8 @@ const Duration _chimeLength = Duration(milliseconds: 900);
 
 // Notes of the C major pentatonic scale, in hertz, so any of them sound well
 // together.
+const double _e4 = 329.63;
+const double _a4 = 440;
 const double _c5 = 523.25;
 const double _e5 = 659.25;
 const double _g5 = 783.99;

@@ -4,16 +4,15 @@ Small daily logic puzzles for the web, built with Flutter. Each puzzle type
 gets a new puzzle every day, generated on the device from the date. Klura is a
 personal, non-commercial hobby project, played at <https://klura.stranne.se/>.
 
-There are two puzzles so far:
+There are three puzzles so far:
 
 - [Bridges](docs/bridges.md): connect the islands so every number is met, all
   islands are linked and no loops form.
 - [Tents](docs/tents.md): give every tree a tent of its own beside it, keep
   tents from touching and match the number of tents in each row and column.
 
-A third, [Logjam](docs/logjam.md), is on its way: slide logs along their own
-lines until the marked one can float out. So far it has its rules, solver and
-generator but no screen, and its name is a working name.
+- [Logjam](docs/logjam.md): slide logs along their own lines until the
+  marked one can float out through the gap in the boom.
 
 [Mental gym](docs/mental-gym.md) compares the skills each puzzle trains and
 sets the rule for choosing the next one.
@@ -166,7 +165,7 @@ dart run tool/generate_icons.dart
 | `lib/home/` | Home screen listing today's puzzles and their progress |
 | `lib/core/` | Flutter-free helpers shared by puzzles: seeded random, daily seed keys, calendar dates, play times, grid positions, the game interface, the solve history, the storage of daily games and the `LocalStore` interface |
 | `lib/play/` | What every puzzle screen shares: the play timer, the sounds of moves, the controller base, the daily games of one puzzle and the puzzle screen with its clock, sound button, status line, buttons, solved panel and how-to-play sheet |
-| `lib/puzzles/<name>/` | One folder per puzzle type, Bridges and Tents: its screen, board, controller and daily games, with the Flutter-free rules, solver, generator, game state and save format in `logic/`. Logjam, the third, has only its rules, solver and generator so far |
+| `lib/puzzles/<name>/` | One folder per puzzle type, Bridges, Tents and Logjam: its screen, board, controller and daily games, with the Flutter-free rules, solver, generator, game state and save format in `logic/` |
 | `web/` | Web shell: loading screen, content security policy, manifest and generated icons |
 | `fonts/` | The Roboto font with its license, bundled so the web engine does not download it |
 | `design/icon/` | SVG sources for the icons |

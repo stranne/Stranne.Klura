@@ -11,6 +11,9 @@ import 'package:klura/play/puzzle_controller.dart';
 import 'package:klura/puzzles/bridges/bridges_daily_games.dart';
 import 'package:klura/puzzles/bridges/bridges_screen.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
+import 'package:klura/puzzles/logjam/logic/logjam_generator.dart';
+import 'package:klura/puzzles/logjam/logjam_daily_games.dart';
+import 'package:klura/puzzles/logjam/logjam_screen.dart';
 import 'package:klura/puzzles/tents/logic/tents_generator.dart';
 import 'package:klura/puzzles/tents/tents_daily_games.dart';
 import 'package:klura/puzzles/tents/tents_screen.dart';
@@ -40,6 +43,7 @@ class HomeScreen extends StatelessWidget {
     required this.today,
     required this.bridges,
     required this.tents,
+    required this.logjam,
     required this.settings,
     super.key,
   });
@@ -52,6 +56,9 @@ class HomeScreen extends StatelessWidget {
   /// Today's Tents games, likewise.
   final TentsDailyGames tents;
 
+  /// Today's Logjam games, likewise, with the fewest moves of their solves.
+  final LogjamDailyGames logjam;
+
   /// Whether to show solve times.
   final KluraSettings settings;
 
@@ -60,7 +67,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
-          listenable: Listenable.merge([bridges, tents, settings]),
+          listenable: Listenable.merge([bridges, tents, logjam, settings]),
           builder: (context, _) {
             final cards = _cards();
             return LayoutBuilder(
@@ -144,27 +151,59 @@ class HomeScreen extends StatelessWidget {
           ),
       ],
     ),
+    _PuzzleCard(
+      icon: Icons.waves_outlined,
+      title: 'Logjam',
+      description: 'Free the marked log through the gap in the boom.',
+      levels: [
+        for (final level in LogjamLevel.values)
+          (
+            title: logjamLevelTitle(level),
+            size:
+                '${level.config.width} × ${level.config.height}'
+                ' · ${level.config.minMoves} to ${level.config.maxMoves}'
+                ' moves',
+            status: _statusOf(
+              logjam,
+              level,
+              moves: logjam.started(level)?.bestMoves,
+            ),
+            routeName: logjamRouteName(level),
+          ),
+      ],
+    ),
   ];
 
   /// How far today's game at [level] of [games] has come, or `null` if it
-  /// has not started.
+  /// has not started, with the fewest [moves] of its solves for a puzzle
+  /// that counts them.
   ///
   /// A puzzle stays solved after a start over, since the solve stands.
   _Status? _statusOf<L extends Enum>(
     DailyGames<L, DailySave<L>, PuzzleController<L, PuzzleGame>> games,
-    L level,
-  ) {
+    L level, {
+    int? moves,
+  }) {
     if (games.solveTime(level) case final time?) {
-      return settings.showTimer
-          ? (
-              text: 'Solved · ${formatPlayTime(time)}',
-              spoken: 'Solved in ${describePlayTime(time)}',
-              solved: true,
-            )
-          : (text: 'Solved', spoken: 'Solved', solved: true);
+      final showTime = settings.showTimer;
+      final movesText = moves == null ? null : logjamMoves(moves);
+      return (
+        text: showTime ? 'Solved · ${formatPlayTime(time)}' : 'Solved',
+        detail: movesText,
+        spoken: [
+          if (showTime) 'Solved in ${describePlayTime(time)}' else 'Solved',
+          ?movesText,
+        ].join(', '),
+        solved: true,
+      );
     }
     if (games.started(level) case final game? when game.isStarted) {
-      return (text: 'In progress', spoken: 'In progress', solved: false);
+      return (
+        text: 'In progress',
+        detail: null,
+        spoken: 'In progress',
+        solved: false,
+      );
     }
     return null;
   }
@@ -344,8 +383,14 @@ class _RenderCardRow extends RenderBox
       defaultHitTestChildren(result, position: position);
 }
 
-/// A level's progress as shown, as read aloud, and whether it is solved.
-typedef _Status = ({String text, String spoken, bool solved});
+/// A level's progress as shown, with a `detail` below it such as the moves
+/// of a solve, as read aloud, and whether it is solved.
+typedef _Status = ({
+  String text,
+  String? detail,
+  String spoken,
+  bool solved,
+});
 
 /// A level of a puzzle as the home screen lists it: its name, the size of
 /// its board, how far today's game has come and the route that opens it.
@@ -433,6 +478,10 @@ class _LevelTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final status = level.status;
+    final statusStyle = theme.textTheme.labelLarge?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
@@ -442,12 +491,18 @@ class _LevelTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (status != null)
-            Text(
-              status.text,
-              semanticsLabel: status.spoken,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontFeatures: const [FontFeature.tabularFigures()],
+            Semantics(
+              label: status.spoken,
+              child: ExcludeSemantics(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(status.text, style: statusStyle),
+                    if (status.detail case final detail?)
+                      Text(detail, style: statusStyle),
+                  ],
+                ),
               ),
             ),
           const SizedBox(width: 8),

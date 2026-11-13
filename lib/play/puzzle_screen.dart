@@ -42,6 +42,11 @@ typedef HowToPlay = ({
   String marksName,
 });
 
+/// What the solved panel says of a solve whose result is more than its
+/// time: a `title` after the check mark, such as `Solved in 15 moves`, a
+/// `detail` after it, and the whole of it as `spoken` for screen readers.
+typedef SolvedMessage = ({String title, String detail, String spoken});
+
 /// Plays one game of the day with a game of type [G]: the board, the time
 /// played, the sounds of moves, a status line, undo and starting over, and
 /// how to play.
@@ -58,11 +63,16 @@ class PuzzleScreen<G extends PuzzleGame> extends StatefulWidget {
     required this.sound,
     required this.board,
     required this.problemIn,
-    required this.solvedDetail,
     required this.resetNotice,
     required this.howToPlay,
+    this.solvedDetail,
+    this.solvedMessage,
+    this.countIn,
     super.key,
-  });
+  }) : assert(
+         (solvedDetail == null) != (solvedMessage == null),
+         'Give either solvedDetail or solvedMessage',
+       );
 
   /// The title in the app bar, such as `Bridges · Normal`.
   final String title;
@@ -82,8 +92,18 @@ class PuzzleScreen<G extends PuzzleGame> extends StatefulWidget {
   final PuzzleNotice? Function(G game) problemIn;
 
   /// What the solved panel says instead of the time when the timer is
-  /// hidden, such as `All 30 islands are linked`.
-  final String solvedDetail;
+  /// hidden, such as `All 30 islands are linked`, unless [solvedMessage]
+  /// says it all.
+  final String? solvedDetail;
+
+  /// What the solved panel says of a solved game, in place of `Solved` with
+  /// the time or [solvedDetail], for a puzzle whose result is more than its
+  /// time. The time stays in the app bar.
+  final SolvedMessage Function(G game)? solvedMessage;
+
+  /// A short count of the player's progress, such as `4 moves`, which
+  /// stands between Undo and Start over while the game is played.
+  final String Function(G game)? countIn;
 
   /// The status line's note after starting over, such as `Board cleared.
   /// Undo brings the bridges back.`
@@ -121,6 +141,10 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
   /// that solves it.
   late bool _isSolved;
 
+  /// The puzzle's own message of the last solve, if it has one, kept so the
+  /// solved panel says the same while it fades after a start over.
+  SolvedMessage? _lastSolved;
+
   final FocusNode _boardFocus = FocusNode(debugLabel: 'Board');
   final FocusNode _doneFocus = FocusNode(debugLabel: 'Done');
 
@@ -130,6 +154,7 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
   void initState() {
     super.initState();
     _isSolved = _controller.game.isSolved;
+    _lastSolved = _solvedMessageOf(_controller.game);
     _controller.addListener(_onGameChanged);
     _appState = WidgetsBinding.instance.lifecycleState;
     _lifecycle = AppLifecycleListener(
@@ -150,6 +175,7 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
         ..pauseTiming();
       _controller.addListener(_onGameChanged);
       _isSolved = _controller.game.isSolved;
+      _lastSolved = _solvedMessageOf(_controller.game);
       _updateTiming();
     }
   }
@@ -180,7 +206,12 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
       });
     }
     _isSolved = isSolved;
+    _lastSolved = _solvedMessageOf(_controller.game) ?? _lastSolved;
   }
+
+  /// The puzzle's own message for [game] if it is solved, otherwise `null`.
+  SolvedMessage? _solvedMessageOf(G game) =>
+      game.isSolved ? widget.solvedMessage?.call(game) : null;
 
   /// Gives the board the keyboard focus when the player presses an arrow
   /// key while something else on the screen has it, so the keyboard works
@@ -336,7 +367,14 @@ class _PuzzleScreenState<G extends PuzzleGame> extends State<PuzzleScreen<G>> {
                             widget.settings.showTimer && _controller.wasSolved
                             ? _controller.timer.elapsed
                             : null,
-                        solvedDetail: widget.solvedDetail,
+                        solvedDetail: widget.solvedDetail ?? '',
+                        // Before a solve the hidden panel lays out the
+                        // message of the game as it is, so the board keeps
+                        // its size when the panel shows.
+                        solvedMessage:
+                            _lastSolved ??
+                            widget.solvedMessage?.call(_controller.game),
+                        count: widget.countIn?.call(_controller.game),
                         notice: _notice,
                         onUndo: _undo,
                         onReset: _reset,
@@ -366,6 +404,8 @@ class _BottomPanel extends StatelessWidget {
     required this.problem,
     required this.solveTime,
     required this.solvedDetail,
+    required this.solvedMessage,
+    required this.count,
     required this.notice,
     required this.onUndo,
     required this.onReset,
@@ -382,6 +422,14 @@ class _BottomPanel extends StatelessWidget {
   final Duration? solveTime;
 
   final String solvedDetail;
+
+  /// What the solved panel says in place of the time and [solvedDetail], if
+  /// the puzzle says more.
+  final SolvedMessage? solvedMessage;
+
+  /// The count between the buttons, if the puzzle keeps one.
+  final String? count;
+
   final PuzzleNotice? notice;
   final VoidCallback onUndo;
   final VoidCallback onReset;
@@ -413,6 +461,7 @@ class _BottomPanel extends StatelessWidget {
                       icon: const Icon(Icons.undo),
                       label: const Text('Undo'),
                     ),
+                    if (count case final count?) _Count(text: count),
                     TextButton.icon(
                       onPressed: game.canReset ? onReset : null,
                       icon: const Icon(Icons.restart_alt),
@@ -429,6 +478,7 @@ class _BottomPanel extends StatelessWidget {
             child: _SolvedPanel(
               solveTime: solveTime,
               detail: solvedDetail,
+              message: solvedMessage,
               onReset: onReset,
               onDone: onDone,
               doneFocus: doneFocus,
@@ -440,8 +490,32 @@ class _BottomPanel extends StatelessWidget {
   }
 }
 
+/// The count between Undo and Start over, such as `4 moves`.
+class _Count extends StatelessWidget {
+  const _Count({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      child: Text(
+        text,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
+    );
+  }
+}
+
 /// Buttons at either end of a row, or one above the other where large text
-/// leaves no room for them side by side.
+/// leaves no room for them side by side. A third child stands between
+/// them.
 class _ButtonRow extends StatelessWidget {
   const _ButtonRow({required this.children});
 
@@ -527,6 +601,7 @@ class _SolvedPanel extends StatelessWidget {
   const _SolvedPanel({
     required this.solveTime,
     required this.detail,
+    required this.message,
     required this.onReset,
     required this.onDone,
     required this.doneFocus,
@@ -537,6 +612,10 @@ class _SolvedPanel extends StatelessWidget {
 
   /// What the panel says instead of the time.
   final String detail;
+
+  /// What the panel says in place of `Solved` with the time or [detail], if
+  /// the puzzle says more.
+  final SolvedMessage? message;
 
   final VoidCallback onReset;
   final VoidCallback onDone;
@@ -551,6 +630,7 @@ class _SolvedPanel extends StatelessWidget {
       color: theme.colorScheme.onSurfaceVariant,
     );
 
+    final message = this.message;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -558,34 +638,43 @@ class _SolvedPanel extends StatelessWidget {
         Semantics(
           container: true,
           liveRegion: true,
-          label: switch (solveTime) {
-            final time? => 'Solved in ${describePlayTime(time)}',
-            null => 'Solved. $detail',
-          },
+          label:
+              message?.spoken ??
+              switch (solveTime) {
+                final time? => 'Solved in ${describePlayTime(time)}',
+                null => 'Solved. $detail',
+              },
           child: ExcludeSemantics(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Text('Solved', style: theme.textTheme.titleMedium),
-                Flexible(
-                  child: switch (solveTime) {
-                    final time? => Text(
-                      '  ·  ${formatPlayTime(time)}',
-                      style: detailStyle?.copyWith(
-                        fontFeatures: const [FontFeature.tabularFigures()],
+            child: message != null
+                ? _SolvedMessageLine(message: message, detailStyle: detailStyle)
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.check_circle,
+                        color: theme.colorScheme.primary,
                       ),
-                    ),
-                    null => Text(
-                      '  ·  $detail',
-                      overflow: TextOverflow.ellipsis,
-                      style: detailStyle,
-                    ),
-                  },
-                ),
-              ],
-            ),
+                      const SizedBox(width: 8),
+                      Text('Solved', style: theme.textTheme.titleMedium),
+                      Flexible(
+                        child: switch (solveTime) {
+                          final time? => Text(
+                            '  ·  ${formatPlayTime(time)}',
+                            style: detailStyle?.copyWith(
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                          null => Text(
+                            '  ·  $detail',
+                            overflow: TextOverflow.ellipsis,
+                            style: detailStyle,
+                          ),
+                        },
+                      ),
+                    ],
+                  ),
           ),
         ),
         const SizedBox(height: 8),
@@ -602,6 +691,42 @@ class _SolvedPanel extends StatelessWidget {
               child: const Text('Done'),
             ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+/// A puzzle's own solved message: its title after the check mark and its
+/// detail beside it, or below where large text leaves no room.
+class _SolvedMessageLine extends StatelessWidget {
+  const _SolvedMessageLine({required this.message, required this.detailStyle});
+
+  final SolvedMessage message;
+  final TextStyle? detailStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle, color: theme.colorScheme.primary),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(message.title, style: theme.textTheme.titleMedium),
+            ),
+          ],
+        ),
+        Text(
+          '  ·  ${message.detail}',
+          textAlign: TextAlign.center,
+          style: detailStyle,
         ),
       ],
     );

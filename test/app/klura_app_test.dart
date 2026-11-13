@@ -5,6 +5,9 @@ import 'package:klura/core/local_store.dart';
 import 'package:klura/puzzles/bridges/bridges_screen.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_storage.dart';
+import 'package:klura/puzzles/logjam/logic/logjam_generator.dart';
+import 'package:klura/puzzles/logjam/logic/logjam_storage.dart';
+import 'package:klura/puzzles/logjam/logjam_screen.dart';
 import 'package:klura/puzzles/tents/logic/tents_generator.dart';
 import 'package:klura/puzzles/tents/logic/tents_storage.dart';
 import 'package:klura/puzzles/tents/tents_screen.dart';
@@ -242,5 +245,43 @@ void main() {
     expect(find.text('Thu, Nov 12'), findsOneWidget);
     expect(find.text('In progress'), findsNothing);
     expect(TentsStorage(store).loadGame(TentsLevel.hard, today), isNull);
+  });
+
+  testWidgets('opens Logjam and picks up its moves after a reload', (
+    tester,
+  ) async {
+    final store = MemoryLocalStore();
+    tester.view.physicalSize = const Size(400, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await launch(tester, store);
+    await tester.tap(level('Hard', puzzle: 'Logjam'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Logjam · Hard'), findsOneWidget);
+    final before = tester
+        .widget<LogjamScreen>(find.byType(LogjamScreen))
+        .controller;
+    expect(before.seedKey, 'logjam-hard:v1:2026-11-11');
+    final solution = generateDailyLogjam(LogjamLevel.hard, today).solution;
+    before
+      ..slide(solution[0])
+      ..slide(solution[1]);
+
+    await launch(tester, store);
+
+    expect(find.text('In progress'), findsOneWidget);
+
+    await tester.tap(level('Hard', puzzle: 'Logjam'));
+    await tester.pumpAndSettle();
+    final after = tester
+        .widget<LogjamScreen>(find.byType(LogjamScreen))
+        .controller;
+
+    expect(after, isNot(same(before)));
+    expect(after.game.board, before.game.board);
+    expect(find.text('2 moves'), findsOneWidget);
+    expect(after.game.canUndo, isTrue);
+    expect(LogjamStorage(store).loadGame(LogjamLevel.hard, today), isNotNull);
   });
 }

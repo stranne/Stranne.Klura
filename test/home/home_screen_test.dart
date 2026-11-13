@@ -7,6 +7,9 @@ import 'package:klura/puzzles/bridges/bridges_controller.dart';
 import 'package:klura/puzzles/bridges/bridges_daily_games.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 import 'package:klura/puzzles/bridges/logic/bridges_storage.dart';
+import 'package:klura/puzzles/logjam/logic/logjam_generator.dart';
+import 'package:klura/puzzles/logjam/logic/logjam_storage.dart';
+import 'package:klura/puzzles/logjam/logjam_daily_games.dart';
 import 'package:klura/puzzles/tents/logic/tents_generator.dart';
 import 'package:klura/puzzles/tents/logic/tents_storage.dart';
 import 'package:klura/puzzles/tents/tents_daily_games.dart';
@@ -15,7 +18,10 @@ import 'package:material_ui/material_ui.dart';
 void main() {
   final today = DateTime(2026, 11, 11);
 
-  Future<(BridgesDailyGames, TentsDailyGames, KluraSettings)> pumpBoth(
+  /// Today's Logjam games on the home screen [pumpAll] last built.
+  late LogjamDailyGames logjam;
+
+  Future<(BridgesDailyGames, TentsDailyGames, KluraSettings)> pumpAll(
     WidgetTester tester, {
     LocalStore? store,
     Size size = const Size(400, 1000),
@@ -26,6 +32,8 @@ void main() {
     addTearDown(bridges.dispose);
     final tents = TentsDailyGames(today, TentsStorage(storage));
     addTearDown(tents.dispose);
+    logjam = LogjamDailyGames(today, LogjamStorage(storage));
+    addTearDown(logjam.dispose);
     final settings = KluraSettings(storage);
     addTearDown(settings.dispose);
     tester.view.physicalSize = size;
@@ -39,6 +47,7 @@ void main() {
           today: today,
           bridges: bridges,
           tents: tents,
+          logjam: logjam,
           settings: settings,
         ),
       ),
@@ -50,7 +59,7 @@ void main() {
     WidgetTester tester, {
     LocalStore? store,
   }) async {
-    final (bridges, _, settings) = await pumpBoth(tester, store: store);
+    final (bridges, _, settings) = await pumpAll(tester, store: store);
     return (bridges, settings);
   }
 
@@ -91,6 +100,10 @@ void main() {
     expect(inCard('Tents', '8 × 8 · 12 tents'), findsOneWidget);
     expect(inCard('Tents', 'Hard'), findsOneWidget);
     expect(inCard('Tents', '10 × 10 · 20 tents'), findsOneWidget);
+    expect(inCard('Logjam', 'Normal'), findsOneWidget);
+    expect(inCard('Logjam', '6 × 6 · 7 to 9 moves'), findsOneWidget);
+    expect(inCard('Logjam', 'Hard'), findsOneWidget);
+    expect(inCard('Logjam', '6 × 6 · 10 to 14 moves'), findsOneWidget);
     expect(find.text('In progress'), findsNothing);
     semantics.dispose();
   });
@@ -98,13 +111,17 @@ void main() {
   testWidgets('places the puzzles side by side on a wide screen', (
     tester,
   ) async {
-    await pumpBoth(tester, size: const Size(1280, 800));
+    await pumpAll(tester, size: const Size(1280, 800));
 
     final bridges = tester.getRect(card('Bridges'));
     final tents = tester.getRect(card('Tents'));
+    final logjam = tester.getRect(card('Logjam'));
     expect(tents.top, bridges.top);
+    expect(logjam.top, bridges.top);
     expect(tents.height, bridges.height);
+    expect(logjam.height, bridges.height);
     expect(tents.left, greaterThan(bridges.right));
+    expect(logjam.left, greaterThan(tents.right));
     // The levels line up across the row.
     expect(
       tester.getTopLeft(inCard('Tents', 'Hard')).dy,
@@ -113,16 +130,16 @@ void main() {
     // The date sits at the right edge of the cards.
     expect(
       tester.getTopRight(find.text('Wed, Nov 11')).dx,
-      lessThan(tents.right),
+      lessThan(logjam.right),
     );
     expect(
       tester.getTopRight(find.text('Wed, Nov 11')).dx,
-      greaterThan(tents.right - 24),
+      greaterThan(logjam.right - 24),
     );
   });
 
   testWidgets('stacks the puzzles on a narrow screen', (tester) async {
-    await pumpBoth(tester);
+    await pumpAll(tester);
 
     expect(
       tester.getRect(card('Tents')).top,
@@ -133,7 +150,7 @@ void main() {
   testWidgets('stacks the puzzles where large text needs the room', (
     tester,
   ) async {
-    await pumpBoth(tester, size: const Size(1280, 2400), textScale: 2);
+    await pumpAll(tester, size: const Size(1280, 2400), textScale: 2);
 
     expect(
       tester.getRect(card('Tents')).top,
@@ -144,7 +161,7 @@ void main() {
   testWidgets('puts the date below the name where large text needs the room', (
     tester,
   ) async {
-    await pumpBoth(tester, size: const Size(320, 1000), textScale: 2);
+    await pumpAll(tester, size: const Size(320, 1000), textScale: 2);
 
     expect(
       tester.getRect(find.text('Wed, Nov 11')).top,
@@ -219,7 +236,7 @@ void main() {
   });
 
   testWidgets('shows how far each Tents game has come', (tester) async {
-    final (_, tents, _) = await pumpBoth(tester);
+    final (_, tents, _) = await pumpAll(tester);
 
     final normal = tents.open(TentsLevel.normal);
     normal.cycleMark(normal.game.puzzle.trees.first.step(Direction.down));
@@ -240,5 +257,43 @@ void main() {
     await tester.pump();
 
     expect(inCard('Tents', 'Solved · 0:00'), findsOneWidget);
+  });
+
+  testWidgets('shows how far each Logjam game has come, with its moves', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final (_, _, settings) = await pumpAll(tester);
+
+    final normal = logjam.open(LogjamLevel.normal);
+    normal.slide(normal.game.board.moves.first);
+    await tester.pump();
+
+    expect(inCard('Logjam', 'In progress'), findsOneWidget);
+
+    final hard = logjam.open(LogjamLevel.hard);
+    generateDailyLogjam(LogjamLevel.hard, today).solution.forEach(hard.slide);
+    await tester.pump();
+
+    final fewest = hard.fewestMoves;
+    expect(inCard('Logjam', 'Solved · 0:00'), findsOneWidget);
+    expect(inCard('Logjam', '$fewest moves'), findsOneWidget);
+    // Read aloud as one, without the dot.
+    expect(
+      tester.getSemantics(inCard('Logjam', 'Solved · 0:00')).label,
+      allOf(
+        contains('Solved in 0 seconds, $fewest moves'),
+        isNot(contains('Solved · 0:00')),
+      ),
+    );
+
+    // The solve and its moves stand after a start over.
+    hard.reset();
+    settings.showTimer = false;
+    await tester.pump();
+
+    expect(inCard('Logjam', 'Solved'), findsOneWidget);
+    expect(inCard('Logjam', '$fewest moves'), findsOneWidget);
+    semantics.dispose();
   });
 }

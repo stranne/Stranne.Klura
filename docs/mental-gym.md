@@ -12,7 +12,7 @@ says about the effect. Read it before proposing or adding a puzzle.
 not use. The marks are a design judgment from the rules and the solving
 techniques in each puzzle's document, not a measurement.
 
-| Area | Skill | Bridges | Tents | Sliding blocks (planned) |
+| Area | Skill | Bridges | Tents | Logjam |
 | --- | --- | --- | --- | --- |
 | Deduction | Ruling out what cannot be true | ● | ● | ◐ |
 | Deduction | Seeing how the whole board hangs together | ● | ◐ | ◐ |
@@ -75,7 +75,7 @@ undecided.
 
 | Candidate | Main skill | Status |
 | --- | --- | --- |
-| Sliding blocks: pieces slide along their own line on a small grid until a marked piece can leave | Planning moves in the right order, holding in mind what the board does not show | Next. Every move can be undone, so there is no dead end. The fewest moves gives the difficulty, and showing it after a solve gives a replay a goal. The best-known version is a commercial board game, so the name, theme and levels must be Klura's own. The logic is built under the working name [Logjam](logjam.md). |
+| Sliding blocks: pieces slide along their own line on a small grid until a marked piece can leave | Planning moves in the right order, holding in mind what the board does not show | Built as [Logjam](logjam.md). Every move can be undone, so there is no dead end. The fewest moves gives the difficulty, and showing it after a solve gives a replay a goal. The best-known version is a commercial board game, so the name, theme and levels are Klura's own. |
 | Shape packing: fit pieces into an outline | Turning shapes in your head | Later. Rotating and flipping pieces on a phone is fiddly. |
 | Statement logic: a few characters make claims about each other, and exactly one choice of who tells the truth fits | Judging which statements can be true together | Candidate. A generator can check every choice for a handful of characters. The wording must stay short and plain. |
 | Code-breaking: guess a hidden code and learn from each score | Testing guesses against hidden information | Passed over for now. Luck decides part of the result, there is one secret a day, and it is close to Wordle. Giving all the guesses and scores up front turns it into ruling out again. |
