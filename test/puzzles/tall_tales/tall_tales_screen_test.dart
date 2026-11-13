@@ -114,39 +114,22 @@ Cajsa: Alva tells tall tales.
     );
   });
 
-  testWidgets('names a statement that does not fit in words', (tester) async {
+  testWidgets('judges nothing while a fisher is unmarked', (tester) async {
+    // Alva's statement is already false for a truth-teller.
     await pumpGame(tester, '''
 + Alva: Bo and I are not alike.
 + Bo: Cajsa tells the truth.
 . Cajsa: Alva tells tall tales.
 ''');
 
-    expect(
-      find.textContaining(
-        "Alva's statement is false, but Alva is marked as telling the truth",
-      ),
-      findsOneWidget,
-    );
+    expect(find.textContaining('statement fits'), findsNothing);
+    expect(find.textContaining("Alva's"), findsNothing);
   });
 
-  testWidgets('names a true statement from a teller of tall tales', (
+  testWidgets('once every fisher is marked, says only that something is off', (
     tester,
   ) async {
-    await pumpGame(tester, '''
-- Alva: Bo and I are not alike.
-+ Bo: Cajsa tells the truth.
-. Cajsa: Alva tells tall tales.
-''');
-
-    expect(
-      find.textContaining(
-        "Alva's statement is true, but Alva is marked as telling tall tales",
-      ),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('lists every statement that does not fit', (tester) async {
+    // Every statement is broken, and the status line names none of them.
     await pumpGame(tester, '''
 - Alva: Bo and I are not alike.
 + Bo: Cajsa tells the truth.
@@ -155,21 +138,39 @@ Cajsa: Alva tells tall tales.
 
     expect(
       find.textContaining(
-        'The statements of Alva, Bo and Cajsa do not fit their marks',
+        'Every fisher is marked, but not every statement fits',
       ),
       findsOneWidget,
     );
+    expect(find.textContaining("Alva's"), findsNothing);
+    expect(find.textContaining('statements of'), findsNothing);
   });
 
-  testWidgets('says nothing while the marks so far fit', (tester) async {
-    await pumpGame(tester, '''
-+ Alva: Bo and I are not alike.
-- Bo: Cajsa tells the truth.
-. Cajsa: Alva tells tall tales.
+  testWidgets('clearing a mark hides the message until all are marked', (
+    tester,
+  ) async {
+    final controller = await pumpGame(tester, '''
+- Alva: Bo and I are not alike.
++ Bo: Cajsa tells the truth.
+- Cajsa: Alva tells tall tales.
 ''');
 
-    expect(find.textContaining('marked as'), findsNothing);
-    expect(find.textContaining('do not fit'), findsNothing);
+    // Tall tales to unmarked, on the way back to the truth.
+    await tapPlank(tester, 'Alva');
+    await tester.pumpAndSettle();
+
+    expect(controller.game.marks[0], isNull);
+    expect(find.textContaining('statement fits'), findsNothing);
+
+    await tapPlank(tester, 'Alva');
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining(
+        'Every fisher is marked, but not every statement fits',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('solving shows the solved message and locks the jetty', (
@@ -181,11 +182,17 @@ Cajsa: Alva tells tall tales.
 + Cajsa: Alva tells tall tales.
 ''');
 
+    expect(
+      find.textContaining('not every statement fits'),
+      findsOneWidget,
+    );
+
     await tapPlank(tester, 'Cajsa');
     await tester.pumpAndSettle();
 
     expect(controller.game.isSolved, isTrue);
     expect(find.text('Solved'), findsOneWidget);
+    expect(find.textContaining('not every statement fits'), findsNothing);
 
     await tapPlank(tester, 'Alva');
 
@@ -246,9 +253,11 @@ Cajsa: Alva tells tall tales.
     expect(
       tester.getSemantics(plank('Alva')),
       matchesSemantics(
+        // Alva's statement is false for a truth-teller, which the label
+        // keeps to itself as the jetty does.
         label:
             'Alva says: Bo and I are not alike. Marked as telling the '
-            'truth. Does not fit the marks.',
+            'truth.',
         isButton: true,
         hasTapAction: true,
       ),

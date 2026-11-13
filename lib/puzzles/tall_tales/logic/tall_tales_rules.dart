@@ -44,6 +44,10 @@ final class TallTalesCheck {
 /// rest turn out to be. A broken statement is then a plain fact about the
 /// marks, never a deduction made for the player.
 ///
+/// The screen shows none of the statuses: with two kinds per fisher, a
+/// broken statement would all but name the fisher to change. It says only
+/// whether the marks solve the puzzle, once every fisher is marked.
+///
 /// Throws an [ArgumentError] if [marks] is not for as many fishers as
 /// [puzzle] has.
 TallTalesCheck checkTallTales(TallTalesPuzzle puzzle, TallTalesMarks marks) {

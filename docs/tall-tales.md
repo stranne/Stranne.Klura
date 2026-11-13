@@ -161,7 +161,7 @@ the [README](../README.md#layout) describes.
 | --- | --- |
 | `tall_tales_controller.dart` | `TallTalesController`: the shared `PuzzleController` for a `TallTalesGame`, with its moves |
 | `tall_tales_daily_games.dart` | `TallTalesDailyGames`: the shared `DailyGames` for Tall Tales |
-| `tall_tales_screen.dart` | The game screen: the shared `PuzzleScreen` with the jetty, the problems the status line names and how to play |
+| `tall_tales_screen.dart` | The game screen: the shared `PuzzleScreen` with the jetty, the note once every fisher is marked and how to play |
 | `tall_tales_board.dart` | The jetty widget: the planks, marks, keyboard, semantics and the solve |
 
 ## Rules check
@@ -178,6 +178,18 @@ whatever the rest turn out to be, such as a count of two truth-tellers with
 three already marked. Judging it earlier would mean working out what the
 unmarked fishers could be, which is the player's thinking. A broken
 statement is a plain fact about the marks.
+
+The screen shows none of these statuses. The first version gave a broken
+statement a red edge and named it in the status line, as Bridges and Tents
+mark a broken rule. In the first playtest that made the puzzle easy without
+thinking: a fisher has only two kinds and a statement depends on two to
+four fishers, so changing whichever fisher a red statement named soon
+fixed it. Now nothing is judged while the player marks. Once every fisher
+is marked and the puzzle is not solved, the status line says only `Every
+fisher is marked, but not every statement fits`. It names no statement and
+gives no count, since a count would let the player home in by trial.
+Finding the mistake is the player's: the marks beside the names in each
+statement let them check it at a glance.
 
 ## Solver
 
@@ -297,12 +309,11 @@ where they do not all fit.
 
 ### Feedback
 
-- A broken statement's plank gets a red edge, and the status line says why
-  in words: `Bo's statement is false, but Bo is marked as telling the
-  truth`, or the reverse for a teller of tall tales. Several broken
-  statements are named together, as in `The statements of Alva and Dag do
-  not fit their marks`. The status line stays empty while nothing is
-  broken.
+- Nothing is judged while the player marks; see [Rules
+  check](#rules-check). Once every fisher is marked and the puzzle is not
+  solved, the status line says `Every fisher is marked, but not every
+  statement fits`, and nothing on the jetty shows which. Clearing a mark
+  takes the note away until every fisher is marked again.
 - When a move solves the puzzle, a wave starts at that plank and lifts each
   plank once, a little later the farther it is. With reduced motion the
   jetty skips it.
@@ -314,14 +325,14 @@ where they do not all fit.
 ### Accessibility
 
 Each plank is a button for screen readers, with a label of its speaker,
-statement, mark and any problem, for example `Bo says: Cajsa and Ebba are
-not alike. Marked as telling tall tales. Does not fit the marks.` A tap
+statement and mark, for example `Bo says: Cajsa and Ebba are not alike.
+Marked as telling tall tales.` Like the jetty, the label never says whether
+the statement fits. A tap
 action changes the mark, so the puzzle can be played with a screen reader,
 with semantics turned on through Flutter's own button as for the other
 puzzles. The jetty has a label with its fishers and how many are marked.
 Nothing depends on color alone: the marks differ in shape and have words
-below, a broken statement is named in the status line, and the focus ring
-is apart from the red edge. Larger text wraps the statements onto more
+below. Larger text wraps the statements onto more
 lines and the jetty scrolls; the word below a mark shrinks rather than
 widen its column. The water, the planks and the brown of tall tales are
 chosen for each brightness; the rest uses the theme's colors.
@@ -373,14 +384,14 @@ speaker.
 
 ## Still to come
 
-- The levels need playtesting: whether advanced reasoning on seven fishers
-  and one supposition on eight give a few minutes of thinking, whether the
-  wording reads easily, and whether the grade matches how hard a puzzle
-  feels. If Hard is too quick, it can ask for two suppositions.
-- Whether to mark broken statements at once is the same open question as for
-  Bridges and Tents, which [Mental gym](mental-gym.md#what-each-puzzle-trains)
-  describes. Marking them only once every fisher is marked would train
-  finding one's own mistakes more.
+- The levels need playtesting again now that nothing is judged while the
+  player marks: whether advanced reasoning on seven fishers and one
+  supposition on eight give a few minutes of thinking, whether the wording
+  reads easily, and whether the grade matches how hard a puzzle feels. If
+  Hard is too quick, it can ask for two suppositions.
+- A player who cannot find the mistake has no help but undo and start over.
+  If a hint is ever added, it should point to a deduction, as [Mental
+  gym](mental-gym.md#principles) asks, never to a broken statement.
 - The interaction has been tried in Chrome. It still needs a session on a
   real phone and with a screen reader.
 - The fishers have names only. Simple figures of their own could give the

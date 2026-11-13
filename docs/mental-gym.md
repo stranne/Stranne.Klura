@@ -22,7 +22,7 @@ techniques in each puzzle's document, not a measurement.
 | Planning | Planning moves in the right order | – | – | ● | – |
 | Planning | Holding in mind what the board does not show | – | – | ● | ◐ |
 | Space | Turning shapes in your head | – | – | – | – |
-| Critical thinking | Finding your own mistakes | ◐ | ◐ | – | ◐ |
+| Critical thinking | Finding your own mistakes | ◐ | ◐ | – | ● |
 | Critical thinking | Testing guesses against hidden information | – | – | – | – |
 | Critical thinking | Judging which statements can be true together | – | – | – | ● |
 | Language | Words and meaning | – | – | – | – |
@@ -61,12 +61,18 @@ Critical thinking is not one skill, so the table splits it into the parts a
 puzzle can demand. Judging real claims also needs knowledge of the subject,
 which no puzzle trains.
 
-Bridges, Tents and Tall Tales mark a broken rule at once: a loop, an
-overfull island, touching tents, a statement that does not fit once
-everyone it depends on is marked. That takes over part of finding mistakes.
-A move that breaks no rule but is still wrong is left for the player to
-find, so the row is ◐. A level that marks less would train it more, at some
-cost to calm. That is undecided.
+Bridges and Tents mark a broken rule at once: a loop, an overfull island,
+touching tents. That takes over part of finding mistakes. A move that breaks
+no rule but is still wrong is left for the player to find, so the row is ◐.
+A level that marks less would train it more, at some cost to calm. That is
+undecided.
+
+Tall Tales judges nothing while the player marks the fishers, and once
+every fisher is marked says only whether every statement fits. Its first version marked
+broken statements at once, and in the first playtest that let the player
+solve it by changing whichever fisher a red statement named: with two kinds
+per fisher, the mark all but gave the fix away. Finding the mistake is now
+the player's, so the row is ●.
 
 ## Choosing a new puzzle
 

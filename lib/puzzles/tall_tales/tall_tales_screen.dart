@@ -3,8 +3,6 @@ import 'package:klura/play/puzzle_screen.dart';
 import 'package:klura/play/puzzle_sound.dart';
 import 'package:klura/puzzles/tall_tales/logic/tall_tales_game.dart';
 import 'package:klura/puzzles/tall_tales/logic/tall_tales_generator.dart';
-import 'package:klura/puzzles/tall_tales/logic/tall_tales_marks.dart';
-import 'package:klura/puzzles/tall_tales/logic/tall_tales_puzzle.dart';
 import 'package:klura/puzzles/tall_tales/tall_tales_board.dart';
 import 'package:klura/puzzles/tall_tales/tall_tales_controller.dart';
 import 'package:material_ui/material_ui.dart';
@@ -59,36 +57,20 @@ class TallTalesScreen extends StatelessWidget {
   }
 }
 
-/// Names the statements in [game] that do not fit their marks, or returns
-/// `null` when none is broken. A statement is judged only once everyone it
-/// depends on is marked, so this never runs ahead of the player.
-PuzzleNotice? _problemIn(TallTalesGame game) {
-  final broken = game.check.broken;
-  if (broken.isEmpty) {
-    return null;
-  }
-  if (broken case [final fisher]) {
-    final name = tallTalesNames[fisher];
-    return (
-      text: switch (game.marks[fisher]) {
-        TallTalesMark.truth =>
-          "$name's statement is false, but $name is marked as telling the "
-              'truth',
-        _ =>
-          "$name's statement is true, but $name is marked as telling tall "
-              'tales',
-      },
-      isProblem: true,
-    );
-  }
-  final names = [for (final fisher in broken) tallTalesNames[fisher]];
-  final listed =
-      '${names.sublist(0, names.length - 1).join(', ')} and ${names.last}';
-  return (
-    text: 'The statements of $listed do not fit their marks',
-    isProblem: true,
-  );
-}
+/// Says that the marks do not solve [game] once every fisher is marked, or
+/// returns `null`.
+///
+/// It never says which statement does not fit, nor how many. A fisher has
+/// only two kinds, so naming a statement would all but name the fisher to
+/// change, and a count would let the player home in by trial; finding the
+/// mistake is the player's.
+PuzzleNotice? _problemIn(TallTalesGame game) =>
+    game.marks.isComplete && !game.isSolved
+    ? (
+        text: 'Every fisher is marked, but not every statement fits',
+        isProblem: true,
+      )
+    : null;
 
 const HowToPlay _howToPlay = (
   rules: [
@@ -126,8 +108,8 @@ const HowToPlay _howToPlay = (
     ),
     HowToPlayPoint(
       text:
-          'Once everyone a statement depends on is marked, a statement that '
-          'does not fit gets a red edge.',
+          'Nothing is checked as you mark. Once every fisher is marked, you '
+          'learn whether every statement fits, but not which one does not.',
     ),
     HowToPlayPoint(
       text:

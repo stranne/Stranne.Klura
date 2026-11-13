@@ -7,7 +7,6 @@ import 'package:klura/play/puzzle_sound.dart';
 import 'package:klura/puzzles/tall_tales/logic/tall_tales_game.dart';
 import 'package:klura/puzzles/tall_tales/logic/tall_tales_marks.dart';
 import 'package:klura/puzzles/tall_tales/logic/tall_tales_puzzle.dart';
-import 'package:klura/puzzles/tall_tales/logic/tall_tales_rules.dart';
 import 'package:klura/puzzles/tall_tales/logic/tall_tales_wording.dart';
 import 'package:klura/puzzles/tall_tales/tall_tales_controller.dart';
 import 'package:material_ui/material_ui.dart';
@@ -17,9 +16,9 @@ import 'package:material_ui/material_ui.dart';
 ///
 /// Tap a plank to move its fisher through the truth, tall tales and
 /// unmarked. With the keyboard, the arrow keys move between fishers and
-/// Space or Enter changes the mark. A statement that does not fit its
-/// marks gets a red edge. The planks keep to a calm width, and the jetty
-/// scrolls where they do not all fit.
+/// Space or Enter changes the mark. Nothing on the jetty says whether a
+/// statement fits; that is the player's to work out. The planks keep to a
+/// calm width, and the jetty scrolls where they do not all fit.
 class TallTalesBoard extends StatefulWidget {
   const TallTalesBoard({
     required this.controller,
@@ -295,7 +294,6 @@ class _TallTalesBoardState extends State<TallTalesBoard>
       fisher: fisher,
       statement: _game.puzzle.statements[fisher],
       marks: _game.marks,
-      status: _game.check.statuses[fisher],
       colors: colors,
       focused: _showFocus && canChange && _cursor == fisher,
       hovered: canChange && _hovered == fisher,
@@ -344,7 +342,6 @@ class _Plank extends StatelessWidget {
     required this.fisher,
     required this.statement,
     required this.marks,
-    required this.status,
     required this.colors,
     required this.focused,
     required this.hovered,
@@ -361,7 +358,6 @@ class _Plank extends StatelessWidget {
   /// statement.
   final TallTalesMarks marks;
 
-  final StatementStatus status;
   final _JettyColors colors;
 
   /// Whether the keyboard's focus ring is on this plank.
@@ -380,7 +376,6 @@ class _Plank extends StatelessWidget {
     final theme = Theme.of(context);
     final name = tallTalesNames[fisher];
     final mark = marks[fisher];
-    final broken = status == StatementStatus.broken;
     final duration = animate ? _changeDuration : Duration.zero;
     final statementStyle = theme.textTheme.bodyLarge!.copyWith(
       color: theme.colorScheme.onSurface,
@@ -404,12 +399,6 @@ class _Plank extends StatelessWidget {
         decoration: BoxDecoration(
           color: hovered ? colors.plankHover : colors.plank,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: broken
-                ? colors.problem
-                : colors.problem.withValues(alpha: 0),
-            width: 2,
-          ),
           boxShadow: [
             BoxShadow(
               color: colors.plankShadow,
@@ -460,7 +449,6 @@ class _Plank extends StatelessWidget {
             TallTalesMark.tallTales => 'Marked as telling tall tales.',
             null => 'Unmarked.',
           },
-          if (broken) 'Does not fit the marks.',
         ].join(' '),
         onTap: onTap,
         child: ExcludeSemantics(
@@ -699,13 +687,12 @@ typedef _JettyColors = ({
   Color tallTales,
   Color onTallTales,
   Color unmarked,
-  Color problem,
   Color focus,
 });
 
-/// The jetty's colors in [theme]: its teal for the truth and its error
-/// color for problems, with water, planks and a brown for tall tales of
-/// their own that sit calmly beside them.
+/// The jetty's colors in [theme]: its teal for the truth, with water,
+/// planks and a brown for tall tales of their own that sit calmly beside
+/// it.
 _JettyColors _jettyColors(ThemeData theme) {
   final scheme = theme.colorScheme;
   final isDark = theme.brightness == Brightness.dark;
@@ -721,7 +708,6 @@ _JettyColors _jettyColors(ThemeData theme) {
     tallTales: isDark ? const Color(0xFFDDA567) : const Color(0xFF8B5A1E),
     onTallTales: isDark ? const Color(0xFF2E1C08) : const Color(0xFFFFFFFF),
     unmarked: scheme.outline,
-    problem: scheme.error,
     focus: scheme.primary,
   );
 }
