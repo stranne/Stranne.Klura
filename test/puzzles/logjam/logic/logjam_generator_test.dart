@@ -1,5 +1,7 @@
 import 'package:klura/core/seeded_random.dart';
+import 'package:klura/puzzles/logjam/logic/logjam_board.dart';
 import 'package:klura/puzzles/logjam/logic/logjam_generator.dart';
+import 'package:klura/puzzles/logjam/logic/logjam_hard_puzzles.dart';
 import 'package:klura/puzzles/logjam/logic/logjam_solver.dart';
 import 'package:klura/puzzles/logjam/logic/logjam_text.dart';
 import 'package:test/test.dart';
@@ -11,25 +13,52 @@ void main() {
 
       expect(
         logjamDailySeedKey(LogjamLevel.normal, date),
-        'logjam-normal:v1:2026-11-12',
+        'logjam-normal:v2:2026-11-12',
       );
       expect(
         logjamDailySeedKey(LogjamLevel.hard, date),
-        'logjam-hard:v1:2026-11-12',
+        'logjam-hard:v2:2026-11-12',
       );
     });
 
     test('is generated from its seed key and level', () {
       final generated = generateDailyLogjam(
-        LogjamLevel.hard,
+        LogjamLevel.normal,
         DateTime(2026, 11, 12),
       );
 
-      expect(generated.seedKey, 'logjam-hard:v1:2026-11-12');
+      expect(generated.seedKey, 'logjam-normal:v2:2026-11-12');
       expect(
         generated.puzzle,
-        generateLogjam(generated.seedKey, LogjamLevel.hard.config).puzzle,
+        generateLogjam(generated.seedKey, LogjamLevel.normal.config).puzzle,
       );
+    });
+
+    test('takes the hard puzzles found ahead of time a day at a time', () {
+      LogjamBoard found(int index) =>
+          parseLogjam(logjamHardPuzzles[index].replaceAll('/', '\n'));
+      DateTime day(int offset) => DateTime(
+        logjamFirstDay.year,
+        logjamFirstDay.month,
+        logjamFirstDay.day + offset,
+      );
+      final count = logjamHardPuzzles.length;
+
+      final first = generateDailyLogjam(LogjamLevel.hard, day(0));
+
+      expect(first.seedKey, 'logjam-hard:v2:2026-11-12');
+      expect(first.puzzle, found(0));
+      expect(first.attempts, 0);
+      expect(logjamHardPuzzleOn(day(1)), found(1));
+      expect(logjamHardPuzzleOn(day(count - 1)), found(count - 1));
+      // After the last, and before the first day, they start over.
+      expect(logjamHardPuzzleOn(day(count)), found(0));
+      expect(logjamHardPuzzleOn(day(-1)), found(count - 1));
+    });
+
+    test('has hard puzzles for two years without a repeat', () {
+      expect(logjamHardPuzzles, hasLength(greaterThanOrEqualTo(731)));
+      expect(logjamHardPuzzles.toSet(), hasLength(logjamHardPuzzles.length));
     });
 
     test('is the same every time for the same date', () {
@@ -44,16 +73,16 @@ void main() {
     });
 
     // Every daily puzzle for about two years, from the first day Logjam is
-    // offered. Each must be valid, need a number of moves that suits its
-    // level, and need the most moves of any position it can reach. The
-    // attempt ceiling keeps generation cheap: attempts are deterministic,
-    // unlike timings, and the worst day needed 179 when it was set. The
-    // digest covers every puzzle, and this test also runs compiled to
-    // JavaScript and WebAssembly, so it shows that every platform builds the
-    // same puzzles.
+    // offered, which for Hard is every puzzle found ahead of time. Each must
+    // be valid, need a number of moves that suits its level, and need the
+    // most moves of any position it can reach. The attempt ceiling keeps
+    // generation cheap: attempts are deterministic, unlike timings, and the
+    // worst Normal day needed 199 when it was set. The digest covers every
+    // puzzle, and this test also runs compiled to JavaScript and
+    // WebAssembly, so it shows that every platform builds the same puzzles.
     final digests = {
-      LogjamLevel.normal: 'f950a3aa',
-      LogjamLevel.hard: '0b8f18ff',
+      LogjamLevel.normal: 'aa5a065f',
+      LogjamLevel.hard: '4c9864e6',
     };
     for (final level in LogjamLevel.values) {
       test('is valid and ${level.name} for every day of two years', () {
@@ -233,47 +262,47 @@ void main() {
   group('snapshot', () {
     final snapshots = {
       (LogjamLevel.normal, DateTime(2026, 11, 12)): (
-        8,
+        13,
         '''
-ABBCCC
-ADEE.F
-GD**HF>
-GIIIHJ
-GKKLHJ
-MM.L.J
+ABBBCC
+ADDEEF
+A**GHF>
+II.GH.
+.J.KKK
+.JLLMM
 ''',
       ),
       (LogjamLevel.normal, DateTime(2028, 2, 29)): (
-        7,
+        10,
         '''
 ABBBCC
-A.DEEE
-AFD**G>
-.FDHIG
-.F.HIJ
-KKLLLJ
+ADDDEE
+**...F>
+GGHH.F
+IJKKLL
+IJMMM.
 ''',
       ),
       (LogjamLevel.hard, DateTime(2026, 11, 12)): (
-        13,
+        24,
         '''
-.AABBB
-.CC.DE
-FG**DE>
-FGHHDI
-JK.LLI
-JKMMNN
+.ABBBC
+.ADDEC
+F**GEH>
+F..GEH
+F.IJJH
+KKI.LL
 ''',
       ),
       (LogjamLevel.hard, DateTime(2028, 2, 29)): (
-        10,
+        23,
         '''
-AAB.CC
-D.BEEE
-DFG**H>
-IFGJJH
-IFKK.H
-ILLMMM
+.ABBBC
+.ADEEC
+**D..C>
+FGGHHH
+F.IIJJ
+KKLLL.
 ''',
       ),
     };

@@ -4,7 +4,8 @@ import 'package:klura/puzzles/logjam/logic/logjam_text.dart';
 
 /// Measures how long the daily Logjam puzzles of each level take to generate,
 /// how many attempts they need and how many moves they take, for two years
-/// from the first day Klura offers them.
+/// from the first day Klura offers them. For Hard, whose puzzles are found
+/// ahead of time, it measures picking and solving the day's puzzle.
 ///
 /// Run on the VM:
 ///
@@ -79,11 +80,13 @@ void _report(LogjamLevel level, int days) {
   _write('  median  ${_ms(byTime[byTime.length ~/ 2].microseconds)}');
   _write('  p95     ${_ms(byTime[byTime.length * 95 ~/ 100].microseconds)}');
   _write('  worst   ${_ms(byTime.last.microseconds)} (${byTime.last.key})');
-  _write('Attempts per puzzle:');
-  _write('  mean    ${(totalAttempts / samples.length).toStringAsFixed(2)}');
-  _write('  median  ${byAttempts[byAttempts.length ~/ 2].attempts}');
-  _write('  p95     ${byAttempts[byAttempts.length * 95 ~/ 100].attempts}');
-  _write('  worst   ${byAttempts.last.attempts} (${byAttempts.last.key})');
+  if (!level.isFoundAhead) {
+    _write('Attempts per puzzle:');
+    _write('  mean    ${(totalAttempts / samples.length).toStringAsFixed(2)}');
+    _write('  median  ${byAttempts[byAttempts.length ~/ 2].attempts}');
+    _write('  p95     ${byAttempts[byAttempts.length * 95 ~/ 100].attempts}');
+    _write('  worst   ${byAttempts.last.attempts} (${byAttempts.last.key})');
+  }
   _write('Positions reachable from each puzzle:');
   _write('  median  ${byPositions[byPositions.length ~/ 2].positions}');
   _write('  worst   ${byPositions.last.positions}');

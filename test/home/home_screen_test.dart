@@ -101,9 +101,9 @@ void main() {
     expect(inCard('Tents', 'Hard'), findsOneWidget);
     expect(inCard('Tents', '10 × 10 · 20 tents'), findsOneWidget);
     expect(inCard('Logjam', 'Normal'), findsOneWidget);
-    expect(inCard('Logjam', '6 × 6 · 7 to 9 moves'), findsOneWidget);
-    expect(inCard('Logjam', 'Hard'), findsOneWidget);
     expect(inCard('Logjam', '6 × 6 · 10 to 14 moves'), findsOneWidget);
+    expect(inCard('Logjam', 'Hard'), findsOneWidget);
+    expect(inCard('Logjam', '6 × 6 · 20 to 25 moves'), findsOneWidget);
     expect(find.text('In progress'), findsNothing);
     semantics.dispose();
   });

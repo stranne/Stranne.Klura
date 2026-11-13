@@ -1,24 +1,43 @@
+import 'package:klura/core/calendar_date.dart';
 import 'package:klura/core/daily_seed.dart';
 import 'package:klura/core/seeded_random.dart';
 import 'package:klura/puzzles/logjam/logic/logjam_board.dart';
+import 'package:klura/puzzles/logjam/logic/logjam_hard_puzzles.dart';
 import 'package:klura/puzzles/logjam/logic/logjam_solver.dart';
+import 'package:klura/puzzles/logjam/logic/logjam_text.dart';
 import 'package:meta/meta.dart';
 
 /// The version of the Logjam generator in daily seed keys.
 ///
 /// Increase it whenever a change would build a different puzzle for an
 /// existing key, so saved games never refer to a puzzle that has silently
-/// changed.
-const int logjamGeneratorVersion = 1;
+/// changed. That includes a new set of [logjamHardPuzzles].
+const int logjamGeneratorVersion = 2;
+
+/// The first day Klura offers Logjam, the day of the first of the
+/// [logjamHardPuzzles].
+final DateTime logjamFirstDay = DateTime(2026, 11, 12);
 
 /// The daily difficulty levels, each with a puzzle of its own every day.
 enum LogjamLevel {
-  normal(LogjamConfig(minMoves: 7, maxMoves: 9)),
-  hard(LogjamConfig(minMoves: 10, maxMoves: 14));
+  /// Generated on the device each day.
+  normal(LogjamConfig(minMoves: 10, maxMoves: 14)),
 
-  const LogjamLevel(this.config);
+  /// Picked each day from [logjamHardPuzzles], found ahead of time with this
+  /// level's configuration, since puzzles this deep take too long to find
+  /// on a phone.
+  hard(
+    LogjamConfig(minMoves: 20, maxMoves: 25, maxPositions: 5000),
+    isFoundAhead: true,
+  );
+
+  const LogjamLevel(this.config, {this.isFoundAhead = false});
 
   final LogjamConfig config;
+
+  /// Whether the level's puzzles are found ahead of time and shipped with
+  /// the app, rather than generated on the device.
+  final bool isFoundAhead;
 }
 
 /// What to generate: the board, its pieces and the fewest moves to accept.
@@ -94,7 +113,8 @@ final class GeneratedLogjam {
   /// The positions reachable from the puzzle's board, itself included.
   final int positions;
 
-  /// The number of attempts made, including the one kept.
+  /// The number of attempts made, including the one kept, or 0 for a puzzle
+  /// found ahead of time.
   final int attempts;
 
   /// The fewest moves the puzzle needs.
@@ -102,7 +122,7 @@ final class GeneratedLogjam {
 }
 
 /// The seed key of the puzzle of the day at [level] for the calendar date of
-/// [date], such as `logjam-normal:v1:2026-11-12`.
+/// [date], such as `logjam-normal:v2:2026-11-12`.
 String logjamDailySeedKey(LogjamLevel level, DateTime date) => dailySeedKey(
   puzzleId: 'logjam-${level.name}',
   generatorVersion: logjamGeneratorVersion,
@@ -110,9 +130,39 @@ String logjamDailySeedKey(LogjamLevel level, DateTime date) => dailySeedKey(
 );
 
 /// Generates the puzzle of the day at [level] for the calendar date of
-/// [date].
-GeneratedLogjam generateDailyLogjam(LogjamLevel level, DateTime date) =>
-    generateLogjam(logjamDailySeedKey(level, date), level.config);
+/// [date], or picks it from the puzzles found ahead of time.
+GeneratedLogjam generateDailyLogjam(LogjamLevel level, DateTime date) {
+  final seedKey = logjamDailySeedKey(level, date);
+  if (!level.isFoundAhead) {
+    return generateLogjam(seedKey, level.config);
+  }
+
+  final puzzle = logjamHardPuzzleOn(date);
+  final cluster = exploreLogjam(
+    puzzle,
+    maxPositions: level.config.maxPositions,
+  );
+  final solution = solveLogjam(puzzle);
+  if (cluster == null || solution == null) {
+    throw StateError('A puzzle found ahead of time is not solvable: $puzzle');
+  }
+  return GeneratedLogjam._(
+    seedKey: seedKey,
+    puzzle: puzzle,
+    solution: solution,
+    positions: cluster.size,
+    attempts: 0,
+  );
+}
+
+/// The Hard puzzle for the calendar date of [date]: the [logjamHardPuzzles]
+/// follow one another a day at a time from [logjamFirstDay], and start over
+/// after the last.
+LogjamBoard logjamHardPuzzleOn(DateTime date) {
+  final day = calendarDaysBetween(logjamFirstDay, date);
+  final text = logjamHardPuzzles[day % logjamHardPuzzles.length];
+  return parseLogjam(text.replaceAll('/', '\n'));
+}
 
 /// Generates a puzzle from [seedKey] whose fewest moves suit [config].
 ///

@@ -262,7 +262,7 @@ void main() {
     final before = tester
         .widget<LogjamScreen>(find.byType(LogjamScreen))
         .controller;
-    expect(before.seedKey, 'logjam-hard:v1:2026-11-11');
+    expect(before.seedKey, 'logjam-hard:v2:2026-11-11');
     final solution = generateDailyLogjam(LogjamLevel.hard, today).solution;
     before
       ..slide(solution[0])

@@ -169,7 +169,7 @@ dart run tool/generate_icons.dart
 | `web/` | Web shell: loading screen, content security policy, manifest and generated icons |
 | `fonts/` | The Roboto font with its license, bundled so the web engine does not download it |
 | `design/icon/` | SVG sources for the icons |
-| `tool/` | Development scripts: the icon generator and the benchmark of each puzzle |
+| `tool/` | Development scripts: the icon generator, the benchmark of each puzzle and the search for the Hard Logjam puzzles shipped with the app |
 | `docs/` | Puzzle rules and design notes, and the skills each puzzle trains |
 | `.github/workflows/` | CI: the checks, and the build and deploy to GitHub Pages |
 | `.vscode/` | VS Code launch configurations, tasks and the recommended extension |
