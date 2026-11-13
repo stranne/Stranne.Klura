@@ -816,6 +816,44 @@ void main() {
       expect(settings.showTimer, isTrue);
     });
 
+    testWidgets('keeps the keyboard focus as it hides and shows', (
+      tester,
+    ) async {
+      await pumpGame(tester, crossing);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+
+      expect(_focusLabel(), 'Time');
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+
+      expect(settings.showTimer, isFalse);
+      expect(_focusLabel(), 'Timer icon');
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pump();
+
+      expect(settings.showTimer, isTrue);
+      expect(_focusLabel(), 'Time');
+    });
+
+    testWidgets('leaves the focus on the board when tapped', (tester) async {
+      final controller = await pumpGame(tester, small);
+      await tester.tapAt(centerOf(tester, controller, const Position(1, 1)));
+      await tester.pump();
+
+      expect(_boardHasFocus(), isTrue);
+
+      await tester.tap(find.text('0:00'));
+      await tester.pump();
+      await tester.tap(find.byTooltip('Show timer'));
+      await tester.pump();
+
+      expect(settings.showTimer, isTrue);
+      expect(_boardHasFocus(), isTrue);
+    });
+
     testWidgets('the solved panel shows the time of the first solve', (
       tester,
     ) async {
@@ -954,8 +992,9 @@ void main() {
   });
 }
 
-bool _boardHasFocus() =>
-    FocusManager.instance.primaryFocus?.debugLabel == 'Board';
+bool _boardHasFocus() => _focusLabel() == 'Board';
+
+String? _focusLabel() => FocusManager.instance.primaryFocus?.debugLabel;
 
 /// Keeps every sound it is asked to play, in order.
 final class _RecordedSounds implements SoundOutput {

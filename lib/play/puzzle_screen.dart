@@ -791,6 +791,9 @@ class _PlayClock extends StatefulWidget {
 class _PlayClockState extends State<_PlayClock> {
   Timer? _tick;
 
+  final FocusNode _timeFocus = FocusNode(debugLabel: 'Time');
+  final FocusNode _iconFocus = FocusNode(debugLabel: 'Timer icon');
+
   PlayTimer get _timer => widget.controller.timer;
 
   @override
@@ -820,12 +823,33 @@ class _PlayClockState extends State<_PlayClock> {
     _tick?.cancel();
     _timer.removeListener(_onTimerChanged);
     widget.settings.removeListener(_onTimerChanged);
+    _timeFocus.dispose();
+    _iconFocus.dispose();
     super.dispose();
   }
 
   void _onTimerChanged() {
     setState(() {});
     _scheduleTick();
+  }
+
+  /// Shows or hides the time. When the pressed button has the keyboard
+  /// focus, the button that takes its place gets it, so the next press
+  /// turns the time back. A tap leaves the focus where it was.
+  void _showTime(bool show) {
+    final pressedHadFocus = (show ? _iconFocus : _timeFocus).hasFocus;
+    widget.settings.showTimer = show;
+    if (!pressedHadFocus) {
+      return;
+    }
+    // The new button takes the focus once it has been built. Handing it a
+    // node that already has the focus would keep the focus but not show
+    // the button's focus ring.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        (show ? _timeFocus : _iconFocus).requestFocus();
+      }
+    });
   }
 
   /// Rebuilds when the shown time next turns to a new second, while the
@@ -851,9 +875,10 @@ class _PlayClockState extends State<_PlayClock> {
 
     if (!settings.showTimer) {
       return IconButton(
+        focusNode: _iconFocus,
         tooltip: 'Show timer',
         icon: const Icon(Icons.timer_outlined),
-        onPressed: () => settings.showTimer = true,
+        onPressed: () => _showTime(true),
       );
     }
 
@@ -866,7 +891,8 @@ class _PlayClockState extends State<_PlayClock> {
     return Tooltip(
       message: 'Hide timer',
       child: TextButton.icon(
-        onPressed: () => settings.showTimer = false,
+        focusNode: _timeFocus,
+        onPressed: () => _showTime(false),
         icon: solved ? const Icon(Icons.check, size: 18) : null,
         label: Text(
           formatPlayTime(elapsed),
