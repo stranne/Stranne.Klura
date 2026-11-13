@@ -4,7 +4,7 @@ Small daily logic puzzles for the web, built with Flutter. Each puzzle type
 gets a new puzzle every day, generated on the device from the date. Klura is a
 personal, non-commercial hobby project, played at <https://klura.stranne.se/>.
 
-There are three puzzles so far:
+There are four puzzles so far:
 
 - [Bridges](docs/bridges.md): connect the islands so every number is met, all
   islands are linked and no loops form.
@@ -13,6 +13,9 @@ There are three puzzles so far:
 
 - [Logjam](docs/logjam.md): slide logs along their own lines until the
   marked one can float out through the gap in the boom.
+- [Tall Tales](docs/tall-tales.md): work out which fishers on the jetty
+  always tell the truth and which always tell tall tales, from what each
+  one says.
 
 [Mental gym](docs/mental-gym.md) compares the skills each puzzle trains and
 sets the rule for choosing the next one.
@@ -24,8 +27,8 @@ flutter run -d chrome
 ```
 
 In VS Code, install the recommended Flutter extension. Run and Debug then
-lists the app in Chrome in debug, profile and release mode, the tests and both
-benchmarks. Tasks: Run Task lists each check below, Check to run them all in
+lists the app in Chrome in debug, profile and release mode, the tests and the
+benchmark of each puzzle. Tasks: Run Task lists each check below, Check to run them all in
 order, and tasks to format the code, build the app and generate the icons.
 Check is also the default test task.
 
@@ -35,7 +38,7 @@ Check is also the default test task.
 dart format --output=none --set-exit-if-changed .
 flutter analyze
 flutter test
-dart test -p node -c dart2js,dart2wasm test/core test/puzzles/bridges/logic test/puzzles/tents/logic test/puzzles/logjam/logic
+dart test -p node -c dart2js,dart2wasm test/core test/puzzles/bridges/logic test/puzzles/tents/logic test/puzzles/logjam/logic test/puzzles/tall_tales/logic
 ```
 
 The last command runs the Flutter-free tests compiled to JavaScript and to
@@ -46,11 +49,14 @@ generate different puzzles than the VM. It needs Node.js on `PATH`.
 development machine.
 
 To time generation on the VM, run `dart run tool/benchmark_bridges.dart`,
-`dart run tool/benchmark_tents.dart` or `dart run tool/benchmark_logjam.dart`.
-The scripts' documentation shows how to run them under Node.js, and
+`dart run tool/benchmark_tents.dart`, `dart run tool/benchmark_logjam.dart`
+or `dart run tool/benchmark_tall_tales.dart`. The scripts' documentation
+shows how to run them under Node.js, and
 [docs/bridges.md](docs/bridges.md#performance),
-[docs/tents.md](docs/tents.md#performance) and
-[docs/logjam.md](docs/logjam.md#performance) record the latest numbers.
+[docs/tents.md](docs/tents.md#performance),
+[docs/logjam.md](docs/logjam.md#performance) and
+[docs/tall-tales.md](docs/tall-tales.md#performance) record the latest
+numbers.
 
 ## Build
 
@@ -165,7 +171,7 @@ dart run tool/generate_icons.dart
 | `lib/home/` | Home screen listing today's puzzles and their progress |
 | `lib/core/` | Flutter-free helpers shared by puzzles: seeded random, daily seed keys, calendar dates, play times, grid positions, the game interface, the solve history, the storage of daily games and the `LocalStore` interface |
 | `lib/play/` | What every puzzle screen shares: the play timer, the sounds of moves, the controller base, the daily games of one puzzle and the puzzle screen with its clock, sound button, status line, buttons, solved panel and how-to-play sheet |
-| `lib/puzzles/<name>/` | One folder per puzzle type, Bridges, Tents and Logjam: its screen, board, controller and daily games, with the Flutter-free rules, solver, generator, game state and save format in `logic/` |
+| `lib/puzzles/<name>/` | One folder per puzzle type, Bridges, Tents, Logjam and Tall Tales: its screen, board, controller and daily games, with the Flutter-free rules, solver, generator, game state and save format in `logic/` |
 | `web/` | Web shell: loading screen, content security policy, manifest and generated icons |
 | `fonts/` | The Roboto font with its license, bundled so the web engine does not download it |
 | `design/icon/` | SVG sources for the icons |

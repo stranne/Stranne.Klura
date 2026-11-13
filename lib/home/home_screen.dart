@@ -14,6 +14,9 @@ import 'package:klura/puzzles/bridges/logic/bridges_generator.dart';
 import 'package:klura/puzzles/logjam/logic/logjam_generator.dart';
 import 'package:klura/puzzles/logjam/logjam_daily_games.dart';
 import 'package:klura/puzzles/logjam/logjam_screen.dart';
+import 'package:klura/puzzles/tall_tales/logic/tall_tales_generator.dart';
+import 'package:klura/puzzles/tall_tales/tall_tales_daily_games.dart';
+import 'package:klura/puzzles/tall_tales/tall_tales_screen.dart';
 import 'package:klura/puzzles/tents/logic/tents_generator.dart';
 import 'package:klura/puzzles/tents/tents_daily_games.dart';
 import 'package:klura/puzzles/tents/tents_screen.dart';
@@ -44,6 +47,7 @@ class HomeScreen extends StatelessWidget {
     required this.bridges,
     required this.tents,
     required this.logjam,
+    required this.tallTales,
     required this.settings,
     super.key,
   });
@@ -59,6 +63,9 @@ class HomeScreen extends StatelessWidget {
   /// Today's Logjam games, likewise, with the fewest moves of their solves.
   final LogjamDailyGames logjam;
 
+  /// Today's Tall Tales games, likewise.
+  final TallTalesDailyGames tallTales;
+
   /// Whether to show solve times.
   final KluraSettings settings;
 
@@ -67,7 +74,13 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
-          listenable: Listenable.merge([bridges, tents, logjam, settings]),
+          listenable: Listenable.merge([
+            bridges,
+            tents,
+            logjam,
+            tallTales,
+            settings,
+          ]),
           builder: (context, _) {
             final cards = _cards();
             return LayoutBuilder(
@@ -107,14 +120,17 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// How many of [count] cards fit side by side in [room], at most
-  /// [_maxColumns].
+  /// How many of [count] cards to place side by side in [room]: as many as
+  /// fit, at most [_maxColumns], but no more than it takes to fill the rows
+  /// evenly, so four cards make two rows of two rather than three and one.
   ///
   /// Larger text needs wider cards, so it leaves room for fewer.
   int _columnsFor(double room, int count, BuildContext context) {
     final cardWidth = MediaQuery.textScalerOf(context).scale(_minCardWidth);
     final fit = ((room + _gap) / (cardWidth + _gap)).floor();
-    return fit.clamp(1, math.max(1, math.min(count, _maxColumns)));
+    final columns = fit.clamp(1, math.max(1, math.min(count, _maxColumns)));
+    final rows = (count / columns).ceil();
+    return math.max(1, (count / rows).ceil());
   }
 
   /// A card for every puzzle, with how far each of today's games has come.
@@ -169,6 +185,20 @@ class HomeScreen extends StatelessWidget {
               moves: logjam.started(level)?.bestMoves,
             ),
             routeName: logjamRouteName(level),
+          ),
+      ],
+    ),
+    _PuzzleCard(
+      icon: Icons.phishing_outlined,
+      title: 'Tall Tales',
+      description: 'Find out who on the jetty tells the truth.',
+      levels: [
+        for (final level in TallTalesLevel.values)
+          (
+            title: tallTalesLevelTitle(level),
+            size: '${level.config.fishers} fishers',
+            status: _statusOf(tallTales, level),
+            routeName: tallTalesRouteName(level),
           ),
       ],
     ),

@@ -14,6 +14,10 @@ import 'package:klura/puzzles/logjam/logic/logjam_generator.dart';
 import 'package:klura/puzzles/logjam/logic/logjam_storage.dart';
 import 'package:klura/puzzles/logjam/logjam_daily_games.dart';
 import 'package:klura/puzzles/logjam/logjam_screen.dart';
+import 'package:klura/puzzles/tall_tales/logic/tall_tales_generator.dart';
+import 'package:klura/puzzles/tall_tales/logic/tall_tales_storage.dart';
+import 'package:klura/puzzles/tall_tales/tall_tales_daily_games.dart';
+import 'package:klura/puzzles/tall_tales/tall_tales_screen.dart';
 import 'package:klura/puzzles/tents/logic/tents_generator.dart';
 import 'package:klura/puzzles/tents/logic/tents_storage.dart';
 import 'package:klura/puzzles/tents/tents_daily_games.dart';
@@ -53,25 +57,30 @@ final class _Day {
     BridgesStorage bridgesStorage,
     TentsStorage tentsStorage,
     LogjamStorage logjamStorage,
+    TallTalesStorage tallTalesStorage,
   ) : bridges = BridgesDailyGames(date, bridgesStorage),
       tents = TentsDailyGames(date, tentsStorage),
-      logjam = LogjamDailyGames(date, logjamStorage);
+      logjam = LogjamDailyGames(date, logjamStorage),
+      tallTales = TallTalesDailyGames(date, tallTalesStorage);
 
   final DateTime date;
   final BridgesDailyGames bridges;
   final TentsDailyGames tents;
   final LogjamDailyGames logjam;
+  final TallTalesDailyGames tallTales;
 
   void stopSaving() {
     bridges.stopSaving();
     tents.stopSaving();
     logjam.stopSaving();
+    tallTales.stopSaving();
   }
 
   void dispose() {
     bridges.dispose();
     tents.dispose();
     logjam.dispose();
+    tallTales.dispose();
   }
 }
 
@@ -80,6 +89,9 @@ class _KluraAppState extends State<KluraApp> {
   late final BridgesStorage _bridgesStorage = BridgesStorage(widget.store);
   late final TentsStorage _tentsStorage = TentsStorage(widget.store);
   late final LogjamStorage _logjamStorage = LogjamStorage(widget.store);
+  late final TallTalesStorage _tallTalesStorage = TallTalesStorage(
+    widget.store,
+  );
   late final ValueNotifier<_Day> _day = ValueNotifier(_newDay(widget.clock()));
   late final AppLifecycleListener _lifecycle;
   Timer? _midnightCheck;
@@ -105,8 +117,13 @@ class _KluraAppState extends State<KluraApp> {
     super.dispose();
   }
 
-  _Day _newDay(DateTime date) =>
-      _Day(date, _bridgesStorage, _tentsStorage, _logjamStorage);
+  _Day _newDay(DateTime date) => _Day(
+    date,
+    _bridgesStorage,
+    _tentsStorage,
+    _logjamStorage,
+    _tallTalesStorage,
+  );
 
   /// Moves on to the puzzles of the clock's date if it has changed, unless
   /// a started game is open.
@@ -141,8 +158,9 @@ class _KluraAppState extends State<KluraApp> {
 
   /// Builds the route named in [settings]: `/` for the home screen,
   /// `/bridges/<level>` for a daily Bridges puzzle, `/tents/<level>` for a
-  /// daily Tents puzzle and `/logjam/<level>` for a daily Logjam puzzle, or
-  /// `null` for any other.
+  /// daily Tents puzzle, `/logjam/<level>` for a daily Logjam puzzle and
+  /// `/tall-tales/<level>` for a daily Tall Tales puzzle, or `null` for any
+  /// other.
   Route<void>? _route(RouteSettings settings) {
     if (settings.name == Navigator.defaultRouteName) {
       return MaterialPageRoute(
@@ -154,6 +172,7 @@ class _KluraAppState extends State<KluraApp> {
             bridges: day.bridges,
             tents: day.tents,
             logjam: day.logjam,
+            tallTales: day.tallTales,
             settings: _settings,
           ),
         ),
@@ -201,6 +220,23 @@ class _KluraAppState extends State<KluraApp> {
           screen: (day) {
             final controller = day.logjam.open(level);
             return LogjamScreen(
+              key: ObjectKey(controller),
+              controller: controller,
+              settings: _settings,
+              sound: widget.sound,
+            );
+          },
+        );
+      }
+    }
+    for (final level in TallTalesLevel.values) {
+      if (settings.name == tallTalesRouteName(level)) {
+        return _puzzleRoute(
+          settings,
+          isStarted: (day) => day.tallTales.started(level)?.isStarted ?? false,
+          screen: (day) {
+            final controller = day.tallTales.open(level);
+            return TallTalesScreen(
               key: ObjectKey(controller),
               controller: controller,
               settings: _settings,

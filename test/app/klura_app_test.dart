@@ -8,6 +8,10 @@ import 'package:klura/puzzles/bridges/logic/bridges_storage.dart';
 import 'package:klura/puzzles/logjam/logic/logjam_generator.dart';
 import 'package:klura/puzzles/logjam/logic/logjam_storage.dart';
 import 'package:klura/puzzles/logjam/logjam_screen.dart';
+import 'package:klura/puzzles/tall_tales/logic/tall_tales_generator.dart';
+import 'package:klura/puzzles/tall_tales/logic/tall_tales_marks.dart';
+import 'package:klura/puzzles/tall_tales/logic/tall_tales_storage.dart';
+import 'package:klura/puzzles/tall_tales/tall_tales_screen.dart';
 import 'package:klura/puzzles/tents/logic/tents_generator.dart';
 import 'package:klura/puzzles/tents/logic/tents_storage.dart';
 import 'package:klura/puzzles/tents/tents_screen.dart';
@@ -283,5 +287,47 @@ void main() {
     expect(find.text('2 moves'), findsOneWidget);
     expect(after.game.canUndo, isTrue);
     expect(LogjamStorage(store).loadGame(LogjamLevel.hard, today), isNotNull);
+  });
+
+  testWidgets('opens Tall Tales and picks up its marks after a reload', (
+    tester,
+  ) async {
+    final store = MemoryLocalStore();
+    tester.view.physicalSize = const Size(400, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await launch(tester, store);
+    await tester.tap(level('Normal', puzzle: 'Tall Tales'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tall Tales · Normal'), findsOneWidget);
+    final before = tester
+        .widget<TallTalesScreen>(find.byType(TallTalesScreen))
+        .controller;
+    expect(before.seedKey, 'tall-tales-normal:v1:2026-11-11');
+    before
+      ..cycleMark(0)
+      ..cycleMark(2)
+      ..cycleMark(2);
+
+    await launch(tester, store);
+
+    expect(find.text('In progress'), findsOneWidget);
+
+    await tester.tap(level('Normal', puzzle: 'Tall Tales'));
+    await tester.pumpAndSettle();
+    final after = tester
+        .widget<TallTalesScreen>(find.byType(TallTalesScreen))
+        .controller;
+
+    expect(after, isNot(same(before)));
+    expect(after.game.puzzle, before.game.puzzle);
+    expect(after.game.marks[0], TallTalesMark.truth);
+    expect(after.game.marks[2], TallTalesMark.tallTales);
+    expect(after.game.canUndo, isFalse);
+    expect(
+      TallTalesStorage(store).loadGame(TallTalesLevel.normal, today),
+      isNotNull,
+    );
   });
 }

@@ -6,9 +6,9 @@ These instructions apply to the entire repository.
 
 Klura is a personal, non-commercial Flutter web app with small daily logic
 puzzles. The goal is a simple, smooth and calm experience. The puzzles are
-Bridges, Tents and Logjam; read [docs/bridges.md](docs/bridges.md),
-[docs/tents.md](docs/tents.md) or [docs/logjam.md](docs/logjam.md) before
-working on one of them.
+Bridges, Tents, Logjam and Tall Tales; read [docs/bridges.md](docs/bridges.md),
+[docs/tents.md](docs/tents.md), [docs/logjam.md](docs/logjam.md) or
+[docs/tall-tales.md](docs/tall-tales.md) before working on one of them.
 
 - Target the web only. Do not add iOS, Android or desktop platforms unless the
   user asks; `flutter create --platforms <list> .` adds them later.

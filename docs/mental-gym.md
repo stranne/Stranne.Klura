@@ -12,20 +12,20 @@ says about the effect. Read it before proposing or adding a puzzle.
 not use. The marks are a design judgment from the rules and the solving
 techniques in each puzzle's document, not a measurement.
 
-| Area | Skill | Bridges | Tents | Logjam |
-| --- | --- | --- | --- | --- |
-| Deduction | Ruling out what cannot be true | ● | ● | ◐ |
-| Deduction | Seeing how the whole board hangs together | ● | ◐ | ◐ |
-| Deduction | Counting against a target | ◐ | ● | – |
-| Deduction | Following a guess to a contradiction | ◐ | ◐ | – |
-| Numbers | Arithmetic: sums and combinations | – | – | – |
-| Planning | Planning moves in the right order | – | – | ● |
-| Planning | Holding in mind what the board does not show | – | – | ● |
-| Space | Turning shapes in your head | – | – | – |
-| Critical thinking | Finding your own mistakes | ◐ | ◐ | – |
-| Critical thinking | Testing guesses against hidden information | – | – | – |
-| Critical thinking | Judging which statements can be true together | – | – | – |
-| Language | Words and meaning | – | – | – |
+| Area | Skill | Bridges | Tents | Logjam | Tall Tales |
+| --- | --- | --- | --- | --- | --- |
+| Deduction | Ruling out what cannot be true | ● | ● | ◐ | ◐ |
+| Deduction | Seeing how the whole board hangs together | ● | ◐ | ◐ | ◐ |
+| Deduction | Counting against a target | ◐ | ● | – | ◐ |
+| Deduction | Following a guess to a contradiction | ◐ | ◐ | – | ● |
+| Numbers | Arithmetic: sums and combinations | – | – | – | – |
+| Planning | Planning moves in the right order | – | – | ● | – |
+| Planning | Holding in mind what the board does not show | – | – | ● | ◐ |
+| Space | Turning shapes in your head | – | – | – | – |
+| Critical thinking | Finding your own mistakes | ◐ | ◐ | – | ◐ |
+| Critical thinking | Testing guesses against hidden information | – | – | – | – |
+| Critical thinking | Judging which statements can be true together | – | – | – | ● |
+| Language | Words and meaning | – | – | – | – |
 
 What each skill means here:
 
@@ -34,11 +34,14 @@ What each skill means here:
   [Bridges](bridges.md#difficulty) and [Tents](tents.md#difficulty).
 - **Seeing how the whole board hangs together**: reasoning about the board as
   one structure, such as the connected islands without loops of Bridges, the
-  pairing of trees and tents, or a chain of pieces blocking each other.
+  pairing of trees and tents, a chain of pieces blocking each other, or
+  fishers linked as alike across several statements.
 - **Counting against a target**: comparing what is placed with a number, such
   as an island's number or a row's tents.
 - **Following a guess to a contradiction**: the lookahead that Hard levels
-  require, trying one move and finding that it breaks a rule.
+  require, trying one move and finding that it breaks a rule. In Tall Tales
+  it is the main move of Hard: supposing what one fisher is and following
+  it through the statements.
 - **Arithmetic**: adding numbers and finding which combinations reach a sum.
 - **Planning moves in the right order**: finding which move has to come
   first, when the board changes with every move.
@@ -51,18 +54,19 @@ What each skill means here:
 - **Testing guesses against hidden information**: choosing what to try next
   so that the answer tells you the most.
 - **Judging which statements can be true together**: working out which claims
-  hold when some contradict others.
+  hold when some contradict others, as in [Tall Tales](tall-tales.md).
 - **Words and meaning**: vocabulary, spelling and meaning.
 
 Critical thinking is not one skill, so the table splits it into the parts a
 puzzle can demand. Judging real claims also needs knowledge of the subject,
 which no puzzle trains.
 
-Bridges and Tents mark a broken rule at once: a loop, an overfull island,
-touching tents. That takes over part of finding mistakes. A move that breaks
-no rule but is still wrong is left for the player to find, so the row is ◐.
-A level that marks less would train it more, at some cost to calm. That is
-undecided.
+Bridges, Tents and Tall Tales mark a broken rule at once: a loop, an
+overfull island, touching tents, a statement that does not fit once
+everyone it depends on is marked. That takes over part of finding mistakes.
+A move that breaks no rule but is still wrong is left for the player to
+find, so the row is ◐. A level that marks less would train it more, at some
+cost to calm. That is undecided.
 
 ## Choosing a new puzzle
 
@@ -77,7 +81,7 @@ undecided.
 | --- | --- | --- |
 | Sliding blocks: pieces slide along their own line on a small grid until a marked piece can leave | Planning moves in the right order, holding in mind what the board does not show | Built as [Logjam](logjam.md). Every move can be undone, so there is no dead end. The fewest moves gives the difficulty, and showing it after a solve gives a replay a goal. The best-known version is a commercial board game, so the name, theme and levels are Klura's own. |
 | Shape packing: fit pieces into an outline | Turning shapes in your head | Later. Rotating and flipping pieces on a phone is fiddly. |
-| Statement logic: a few characters make claims about each other, and exactly one choice of who tells the truth fits | Judging which statements can be true together | Candidate. A generator can check every choice for a handful of characters. The wording must stay short and plain. |
+| Statement logic: a few characters make claims about each other, and exactly one choice of who tells the truth fits | Judging which statements can be true together, following a guess to a contradiction | Built as [Tall Tales](tall-tales.md). The generator checks every choice of up to eight fishers, and a grader that reasons as a person does sets the levels. The wording stays short and plain, from fifteen kinds of claim. |
 | Code-breaking: guess a hidden code and learn from each score | Testing guesses against hidden information | Passed over for now. Luck decides part of the result, there is one secret a day, and it is close to Wordle. Giving all the guesses and scores up front turns it into ruling out again. |
 | Word puzzles | Words and meaning | Passed over for now. They need a choice of language and a licensed word list, and generated word puzzles are hard to make good. |
 | Kakuro, Nonograms, Slitherlink and similar grid puzzles | Ruling out what cannot be true | Passed over. The main skill is already trained. Kakuro also trains arithmetic, but only as a side skill. |

@@ -108,6 +108,22 @@ enum PuzzleSound {
     ),
   ]),
 
+  /// A fisher marked as telling the truth: one clear, round pluck.
+  truth([Pluck(_a5, gain: 0.24, length: Duration(milliseconds: 120))]),
+
+  /// A fisher marked as telling tall tales: a woodier pluck that bends up a
+  /// little, like a story that grows in the telling.
+  tallTales([
+    Pluck(
+      _e5,
+      gain: 0.28,
+      length: Duration(milliseconds: 150),
+      glide: 1.12,
+      overtone: 0.12,
+      waveform: Waveform.triangle,
+    ),
+  ]),
+
   /// The move that solves the puzzle: a rising chime of five notes that
   /// keeps pace with the wave across the board.
   solved([

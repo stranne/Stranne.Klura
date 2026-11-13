@@ -10,6 +10,10 @@ import 'package:klura/puzzles/bridges/logic/bridges_storage.dart';
 import 'package:klura/puzzles/logjam/logic/logjam_generator.dart';
 import 'package:klura/puzzles/logjam/logic/logjam_storage.dart';
 import 'package:klura/puzzles/logjam/logjam_daily_games.dart';
+import 'package:klura/puzzles/tall_tales/logic/tall_tales_generator.dart';
+import 'package:klura/puzzles/tall_tales/logic/tall_tales_marks.dart';
+import 'package:klura/puzzles/tall_tales/logic/tall_tales_storage.dart';
+import 'package:klura/puzzles/tall_tales/tall_tales_daily_games.dart';
 import 'package:klura/puzzles/tents/logic/tents_generator.dart';
 import 'package:klura/puzzles/tents/logic/tents_storage.dart';
 import 'package:klura/puzzles/tents/tents_daily_games.dart';
@@ -20,6 +24,9 @@ void main() {
 
   /// Today's Logjam games on the home screen [pumpAll] last built.
   late LogjamDailyGames logjam;
+
+  /// Today's Tall Tales games on the home screen [pumpAll] last built.
+  late TallTalesDailyGames tallTales;
 
   Future<(BridgesDailyGames, TentsDailyGames, KluraSettings)> pumpAll(
     WidgetTester tester, {
@@ -34,6 +41,8 @@ void main() {
     addTearDown(tents.dispose);
     logjam = LogjamDailyGames(today, LogjamStorage(storage));
     addTearDown(logjam.dispose);
+    tallTales = TallTalesDailyGames(today, TallTalesStorage(storage));
+    addTearDown(tallTales.dispose);
     final settings = KluraSettings(storage);
     addTearDown(settings.dispose);
     tester.view.physicalSize = size;
@@ -48,6 +57,7 @@ void main() {
           bridges: bridges,
           tents: tents,
           logjam: logjam,
+          tallTales: tallTales,
           settings: settings,
         ),
       ),
@@ -83,7 +93,9 @@ void main() {
 
   testWidgets('shows the date and both levels of each puzzle', (tester) async {
     final semantics = tester.ensureSemantics();
-    await pumpHome(tester);
+    // Tall enough for all four cards, since the list builds only those in
+    // view.
+    await pumpAll(tester, size: const Size(400, 1400));
 
     expect(find.text('Klura'), findsOneWidget);
     expect(find.text("Today's puzzles"), findsOneWidget);
@@ -104,11 +116,15 @@ void main() {
     expect(inCard('Logjam', '6 × 6 · 10 to 14 moves'), findsOneWidget);
     expect(inCard('Logjam', 'Hard'), findsOneWidget);
     expect(inCard('Logjam', '6 × 6 · 20 to 25 moves'), findsOneWidget);
+    expect(inCard('Tall Tales', 'Normal'), findsOneWidget);
+    expect(inCard('Tall Tales', '7 fishers'), findsOneWidget);
+    expect(inCard('Tall Tales', 'Hard'), findsOneWidget);
+    expect(inCard('Tall Tales', '8 fishers'), findsOneWidget);
     expect(find.text('In progress'), findsNothing);
     semantics.dispose();
   });
 
-  testWidgets('places the puzzles side by side on a wide screen', (
+  testWidgets('places the puzzles side by side in even rows on a wide screen', (
     tester,
   ) async {
     await pumpAll(tester, size: const Size(1280, 800));
@@ -116,12 +132,16 @@ void main() {
     final bridges = tester.getRect(card('Bridges'));
     final tents = tester.getRect(card('Tents'));
     final logjam = tester.getRect(card('Logjam'));
+    final tallTales = tester.getRect(card('Tall Tales'));
+    // Four cards make two rows of two rather than three and one.
     expect(tents.top, bridges.top);
-    expect(logjam.top, bridges.top);
     expect(tents.height, bridges.height);
-    expect(logjam.height, bridges.height);
     expect(tents.left, greaterThan(bridges.right));
-    expect(logjam.left, greaterThan(tents.right));
+    expect(logjam.top, greaterThan(bridges.bottom));
+    expect(logjam.left, bridges.left);
+    expect(tallTales.top, logjam.top);
+    expect(tallTales.height, logjam.height);
+    expect(tallTales.left, tents.left);
     // The levels line up across the row.
     expect(
       tester.getTopLeft(inCard('Tents', 'Hard')).dy,
@@ -130,11 +150,11 @@ void main() {
     // The date sits at the right edge of the cards.
     expect(
       tester.getTopRight(find.text('Wed, Nov 11')).dx,
-      lessThan(logjam.right),
+      lessThan(tents.right),
     );
     expect(
       tester.getTopRight(find.text('Wed, Nov 11')).dx,
-      greaterThan(logjam.right - 24),
+      greaterThan(tents.right - 24),
     );
   });
 
@@ -257,6 +277,31 @@ void main() {
     await tester.pump();
 
     expect(inCard('Tents', 'Solved · 0:00'), findsOneWidget);
+  });
+
+  testWidgets('shows how far each Tall Tales game has come', (tester) async {
+    await pumpAll(tester, size: const Size(400, 1400));
+
+    tallTales.open(TallTalesLevel.normal).cycleMark(0);
+    await tester.pump();
+
+    expect(inCard('Tall Tales', 'In progress'), findsOneWidget);
+    expect(inCard('Logjam', 'In progress'), findsNothing);
+
+    final hard = tallTales.open(TallTalesLevel.hard);
+    final solution = generateDailyTallTales(
+      TallTalesLevel.hard,
+      today,
+    ).solution;
+    for (var fisher = 0; fisher < solution.length; fisher++) {
+      hard.cycleMark(fisher);
+      if (solution[fisher] == TallTalesMark.tallTales) {
+        hard.cycleMark(fisher);
+      }
+    }
+    await tester.pump();
+
+    expect(inCard('Tall Tales', 'Solved · 0:00'), findsOneWidget);
   });
 
   testWidgets('shows how far each Logjam game has come, with its moves', (

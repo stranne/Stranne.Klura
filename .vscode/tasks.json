@@ -56,7 +56,8 @@
         "test/core",
         "test/puzzles/bridges/logic",
         "test/puzzles/tents/logic",
-        "test/puzzles/logjam/logic"
+        "test/puzzles/logjam/logic",
+        "test/puzzles/tall_tales/logic"
       ],
       "problemMatcher": []
     },

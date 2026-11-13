@@ -55,6 +55,13 @@
       "request": "launch",
       "program": "tool/benchmark_logjam.dart",
       "enableAsserts": false
+    },
+    {
+      "name": "Benchmark Tall Tales",
+      "type": "dart",
+      "request": "launch",
+      "program": "tool/benchmark_tall_tales.dart",
+      "enableAsserts": false
     }
   ]
 }
